@@ -1,0 +1,194 @@
+---
+/**
+ * SchemaOrg.astro — JSON-LD structured data component
+ *
+ * Gera schema.org para rich results no Google Search.
+ * Sempre inclui WebSite + Person. Schemas adicionais
+ * dependem do `type` passado pelo pai.
+ */
+
+// "website" | "article" (local/[slug]) | "collection" (locais) | "about" (sobre)
+export type SchemaType = "website" | "article" | "collection" | "about";
+
+interface Props {
+  type?: SchemaType;
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+  publishDate?: Date;
+  tags?: string[];
+  // Específico para artigos de local
+  locationName?: string;
+  lat?: number;
+  lng?: number;
+  country?: string;
+  category?: string;
+}
+
+const {
+  type = "website",
+  title,
+  description,
+  url,
+  image,
+  publishDate,
+  tags = [],
+  locationName,
+  lat,
+  lng,
+  country,
+  category,
+} = Astro.props;
+
+const siteUrl = "https://porondeandei.randys.dev";
+const siteName = "Por Onde Andei";
+const authorName = "Randys Machado";
+
+// Remove o sufixo "· Por Onde Andei..." para usar como headline puro
+const SUFFIX = ` · ${siteName} | De ${authorName}.`;
+const headline = title.endsWith(SUFFIX) ? title.slice(0, -SUFFIX.length) : title;
+
+// ── Entidade base: Person (autor) ─────────────────────────────
+const person = {
+  "@type": "Person",
+  "@id": `${siteUrl}/#author`,
+  name: authorName,
+  url: siteUrl,
+};
+
+// ── WebSite (todas as páginas) ────────────────────────────────
+const website = {
+  "@type": "WebSite",
+  "@id": `${siteUrl}/#website`,
+  url: siteUrl,
+  name: siteName,
+  description:
+    "Diário de viagens e passeios de Randys Machado — locais, fotos e histórias pelo Brasil e pelo mundo.",
+  publisher: { "@id": `${siteUrl}/#author` },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${siteUrl}/locais/?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+  inLanguage: "pt-BR",
+};
+
+// ── WebPage base ──────────────────────────────────────────────
+const webpage = {
+  "@type": "WebPage",
+  "@id": `${url}#webpage`,
+  url,
+  name: title,
+  description,
+  isPartOf: { "@id": `${siteUrl}/#website` },
+  inLanguage: "pt-BR",
+  ...(image ? { primaryImageOfPage: { "@type": "ImageObject", url: image } } : {}),
+};
+
+// ── Schemas condicionais ──────────────────────────────────────
+const conditionalSchemas: object[] = [];
+
+if (type === "article") {
+  // TouristAttraction — o local visitado
+  const place: Record<string, unknown> = {
+    "@type": ["TouristAttraction", "LandmarksOrHistoricalBuildings"],
+    "@id": `${url}#place`,
+    name: locationName ?? title,
+    ...(country ? { addressCountry: country } : {}),
+  };
+
+  if (lat !== undefined && lng !== undefined) {
+    place.geo = {
+      "@type": "GeoCoordinates",
+      latitude: lat,
+      longitude: lng,
+    };
+    place.hasMap = `https://www.google.com/maps?q=${lat},${lng}`;
+  }
+
+  if (locationName) {
+    place.address = {
+      "@type": "PostalAddress",
+      addressLocality: locationName,
+      ...(country ? { addressCountry: country } : {}),
+    };
+  }
+
+  // BlogPosting — o relato da visita
+  const blogPost: Record<string, unknown> = {
+    "@type": "BlogPosting",
+    "@id": `${url}#article`,
+    mainEntityOfPage: { "@id": `${url}#webpage` },
+    headline,
+    description,
+    url,
+    ...(image
+      ? {
+          image: {
+            "@type": "ImageObject",
+            url: image,
+            width: 1200,
+            height: 630,
+          },
+        }
+      : {}),
+    author: { "@id": `${siteUrl}/#author` },
+    publisher: { "@id": `${siteUrl}/#author` },
+    inLanguage: "pt-BR",
+    ...(publishDate
+      ? {
+          datePublished: publishDate.toISOString(),
+          dateModified: publishDate.toISOString(),
+        }
+      : {}),
+    ...(tags.length > 0 ? { keywords: tags.join(", ") } : {}),
+    ...(category ? { articleSection: category } : {}),
+    about: { "@id": `${url}#place` },
+    isPartOf: { "@id": `${siteUrl}/#website` },
+  };
+
+  conditionalSchemas.push(place, blogPost);
+}
+
+if (type === "collection") {
+  conditionalSchemas.push({
+    "@type": "CollectionPage",
+    "@id": `${url}#collection`,
+    mainEntityOfPage: { "@id": `${url}#webpage` },
+    name: title,
+    description,
+    url,
+    author: { "@id": `${siteUrl}/#author` },
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    inLanguage: "pt-BR",
+  });
+}
+
+if (type === "about") {
+  conditionalSchemas.push({
+    "@type": "AboutPage",
+    "@id": `${url}#about`,
+    mainEntityOfPage: { "@id": `${url}#webpage` },
+    name: title,
+    description,
+    url,
+    author: { "@id": `${siteUrl}/#author` },
+    isPartOf: { "@id": `${siteUrl}/#website` },
+    inLanguage: "pt-BR",
+  });
+}
+
+// ── Grafo final ───────────────────────────────────────────────
+const graph = {
+  "@context": "https://schema.org",
+  "@graph": [person, website, webpage, ...conditionalSchemas],
+};
+
+const jsonLd = JSON.stringify(graph);
+---
+
+<script type="application/ld+json" set:html={jsonLd} />

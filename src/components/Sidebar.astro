@@ -1,5 +1,7 @@
 ---
 import { getCollection } from "astro:content";
+import { Image } from "astro:assets";
+import logo from "../assets/logo.png";
 
 const allLocais = await getCollection("local");
 const locais = allLocais
@@ -19,34 +21,20 @@ const total = locais.length;
   <!-- ── Brand ── -->
   <header class="side-head">
     <div class="flex gap-3">
-      <div
-        class="w-9 h-9 rounded-lg bg-accent text-[#1a1411] grid place-items-center shrink-0"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 22s-7-7.58-7-13a7 7 0 0 1 14 0c0 5.42-7 13-7 13z"></path>
-          <circle cx="12" cy="9" r="2.5"></circle>
-        </svg>
+      <div class="w-10 h-10 rounded-lg grid place-items-center shrink-0">
+        <Image src={logo} alt="Logomarca Por Onde Andei" class="" />
       </div>
       <div>
-        <div
+        <h1
           class="font-display text-[28px] leading-none tracking-[0.02em] text-ink"
         >
-          Por onde andei
-        </div>
-        <div
+          Por Onde Andei
+        </h1>
+        <h2
           class="font-ui text-[11px] text-ink-3 uppercase tracking-[0.16em] font-bold mt-1"
         >
           de Randys Machado
-        </div>
+        </h2>
       </div>
     </div>
   </header>
@@ -63,7 +51,6 @@ const total = locais.length;
       locais.map((t, i) => {
         const slug = t.id.replace("/index", "");
         const url = `/local/${slug}`;
-        const thumb = t.data.cover?.src ?? "";
         const date = t.data.date.toLocaleDateString("pt-BR", {
           month: "short",
           year: "numeric",
@@ -72,10 +59,21 @@ const total = locais.length;
         return (
           <a class="card" href={url} data-id={slug}>
             <div
-              class="card-thumb"
+              class={`card-thumb${t.data.cover ? " has-img" : ""}`}
               data-num={num}
-              style={thumb ? `background-image:url('${thumb}')` : ""}
-            />
+            >
+              {t.data.cover && (
+                <Image
+                  src={t.data.cover}
+                  alt={t.data.title}
+                  width={120}
+                  height={120}
+                  class="card-thumb-img"
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+            </div>
             <div class="card-body">
               <div class="card-meta">{date}</div>
               <div class="card-title">{t.data.title}</div>
@@ -176,8 +174,6 @@ const total = locais.length;
     height: 60px;
     border-radius: 8px;
     background: var(--panel-2);
-    background-size: cover;
-    background-position: center;
     border: 1px solid var(--line);
     flex-shrink: 0;
     position: relative;
@@ -194,8 +190,16 @@ const total = locais.length;
     color: var(--ink-3);
     background: var(--panel-2);
   }
-  .card-thumb[style*="background-image"]::after {
+  .card-thumb.has-img::after {
     display: none;
+  }
+  .card-thumb-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
   }
 
   .card-body {

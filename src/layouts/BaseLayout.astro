@@ -1,6 +1,9 @@
 ---
 import "../styles/global.css";
 import { SEO } from "astro-seo";
+import logo from "../assets/logo.png";
+import SchemaOrg from "../components/SchemaOrg.astro";
+import type { SchemaType } from "../components/SchemaOrg.astro";
 
 interface Props {
   title: string;
@@ -11,6 +14,13 @@ interface Props {
   tags?: string[];
   canonicalURL?: string;
   bodyClass?: string;
+  // JSON-LD
+  schemaType?: SchemaType;
+  locationName?: string;
+  lat?: number;
+  lng?: number;
+  country?: string;
+  category?: string;
 }
 
 const {
@@ -22,11 +32,19 @@ const {
   tags = [],
   canonicalURL = Astro.url.href,
   bodyClass = "",
+  schemaType = "website",
+  locationName,
+  lat,
+  lng,
+  country,
+  category,
 } = Astro.props;
 
 const siteName = "Por Onde Andei | De Randys Machado.";
 const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 const ogImageURL = new URL(ogImage, Astro.site).toString();
+const logoURL = new URL(logo.src, Astro.site).toString();
+
 ---
 
 <!doctype html>
@@ -77,16 +95,48 @@ const ogImageURL = new URL(ogImage, Astro.site).toString();
           { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
           { rel: "sitemap", href: "/sitemap-index.xml" },
         ],
-        meta: [{ name: "generator", content: Astro.generator }],
+        meta: [
+          { name: "generator", content: Astro.generator },
+          { property: "og:logo", content: logoURL },
+        ],
       }}
     />
 
-    <!-- Fonts: Bebas Neue + Manrope -->
+    <!-- Fonts: Bebas Neue + Manrope (assíncronas, não bloqueiam render) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- JSON-LD Structured Data -->
+    <SchemaOrg
+      type={schemaType}
+      title={fullTitle}
+      description={description}
+      url={canonicalURL}
+      image={ogImageURL}
+      publishDate={publishDate}
+      tags={tags}
+      locationName={locationName}
+      lat={lat}
+      lng={lng}
+      country={country}
+      category={category}
     />
 
     <!-- Google Analytics (via Partytown — roda em web worker) -->

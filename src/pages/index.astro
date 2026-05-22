@@ -12,13 +12,13 @@ const publishedLocais = allLocais
 
 <BaseLayout
   title="Por Onde Andei | De Randys Machado."
-  description="Este projeto é um local onde compartilho relatos de viagens, passeios e experiências em lugares que visitei."
+  description="O projeto Por Onde Andei é um local onde compartilho relatos de viagens, passeios e experiências em lugares que visitei."
   bodyClass="home-body"
 >
-  <div class="shell">
+  <main class="shell" aria-label="Mapa de viagens">
     <Sidebar />
     <InteractiveMap travels={publishedLocais} />
-  </div>
+  </main>
 </BaseLayout>
 
 <style is:global>

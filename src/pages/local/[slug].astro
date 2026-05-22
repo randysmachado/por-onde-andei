@@ -60,6 +60,12 @@ const nextSlug = next.id.replace("/index", "");
   ogType="article"
   publishDate={date}
   tags={tags}
+  schemaType="article"
+  locationName={location.name}
+  lat={location.lat}
+  lng={location.lng}
+  country={location.country}
+  category={category}
 >
   <!-- ── Top nav ── -->
   <nav class="topnav">
@@ -83,10 +89,7 @@ const nextSlug = next.id.replace("/index", "");
   <main>
     <!-- ── Hero ── -->
     <section class="hero">
-      <div
-        class="hero-img"
-        style={cover ? `background-image:url('${cover.src}')` : ""}
-      >
+      <div class="hero-img">
         {
           cover && (
             <Image
@@ -95,6 +98,8 @@ const nextSlug = next.id.replace("/index", "");
               class="hero-img-tag"
               widths={[800, 1200, 1920]}
               sizes="100vw"
+              loading="eager"
+              fetchpriority="high"
             />
           )
         }
@@ -288,7 +293,7 @@ const nextSlug = next.id.replace("/index", "");
     text-transform: var(--eyebrow-tt);
     letter-spacing: var(--eyebrow-ls);
     font-weight: var(--eyebrow-fw);
-    color: var(--ink-3);
+    color: var(--ink-2);
     margin-bottom: 6px;
   }
   .meta-val {

@@ -1,5 +1,6 @@
 ---
 import type { CollectionEntry } from "astro:content";
+import { getImage } from "astro:assets";
 
 interface Props {
   travels: CollectionEntry<"local">[];
@@ -7,23 +8,43 @@ interface Props {
 
 const { travels } = Astro.props;
 
-const mapData = travels
-  .filter((t) => !t.data.draft)
-  .map((t) => ({
-    id: t.id.replace("/index", ""),
-    title: t.data.title,
-    lat: t.data.location.lat,
-    lng: t.data.location.lng,
-    locationName: t.data.location.name,
-    country: t.data.location.country ?? "",
-    date: t.data.date.toLocaleDateString("pt-BR", {
-      month: "long",
-      year: "numeric",
+// Pré-processa as imagens de capa em dois tamanhos:
+// • pinThumb: 72×72 (pin com foto no mapa, exibido em 36×36 @2x)
+// • popupCover: 560×280 (popup do mapa, exibido em 280×140 @2x)
+const mapData = await Promise.all(
+  travels
+    .filter((t) => !t.data.draft)
+    .map(async (t) => {
+      let pinThumb = "";
+      let popupCover = "";
+
+      if (t.data.cover) {
+        const [pin, popup] = await Promise.all([
+          getImage({ src: t.data.cover, width: 72, height: 72, format: "webp" }),
+          getImage({ src: t.data.cover, width: 560, height: 280, format: "webp" }),
+        ]);
+        pinThumb = pin.src;
+        popupCover = popup.src;
+      }
+
+      return {
+        id: t.id.replace("/index", ""),
+        title: t.data.title,
+        lat: t.data.location.lat,
+        lng: t.data.location.lng,
+        locationName: t.data.location.name,
+        country: t.data.location.country ?? "",
+        date: t.data.date.toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        }),
+        excerpt: t.data.excerpt ?? t.data.description.slice(0, 140),
+        cover: pinThumb,
+        popupCover,
+        url: `/local/${t.id.replace("/index", "")}`,
+      };
     }),
-    excerpt: t.data.excerpt ?? t.data.description.slice(0, 140),
-    cover: t.data.cover?.src ?? "",
-    url: `/local/${t.id.replace("/index", "")}`,
-  }));
+);
 
 const travelsJson = JSON.stringify(mapData);
 ---
@@ -49,6 +70,7 @@ const travelsJson = JSON.stringify(mapData);
     date: string;
     excerpt: string;
     cover: string;
+    popupCover: string;
     url: string;
   };
 
@@ -84,7 +106,7 @@ const travelsJson = JSON.stringify(mapData);
         popupAnchor: [0, -58],
         html: `<div class="pin">
           <div class="pin-frame" data-num="${num}">
-            <div class="pin-photo" style="background-image:url('${t.cover}')"></div>
+            <img class="pin-photo" src="${t.cover}" alt="${t.title}" width="36" height="36" loading="eager" decoding="async" />
           </div>
           <div class="pin-tail"></div>
         </div>`,
@@ -92,9 +114,9 @@ const travelsJson = JSON.stringify(mapData);
     }
     return L.divIcon({
       className: "pin-icon",
-      iconSize: [34, 34],
-      iconAnchor: [17, 34],
-      popupAnchor: [0, -36],
+      iconSize: [44, 44],
+      iconAnchor: [22, 44],
+      popupAnchor: [0, -46],
       html: `<div class="pin-simple"><span>${num}</span></div>`,
     });
   }
@@ -107,10 +129,10 @@ const travelsJson = JSON.stringify(mapData);
     return `
       <div>
         ${
-          t.cover
-            ? `<div class="pop-cover" style="background-image:url('${t.cover}')"></div>`
-            : `<div class="pop-cover" style="background:var(--panel-2);display:flex;align-items:center;justify-content:center;">
-               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(243,238,226,0.2)" stroke-width="1.5">
+          t.popupCover
+            ? `<div class="pop-cover"><img src="${t.popupCover}" alt="${t.title}" width="280" height="140" loading="lazy" decoding="async" style="width:100%;height:140px;object-fit:cover;display:block;border-top-left-radius:11px;border-top-right-radius:11px;" /></div>`
+            : `<div class="pop-cover pop-cover-empty">
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(243,238,226,0.2)" stroke-width="1.5" aria-hidden="true">
                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
                  <circle cx="12" cy="10" r="3"/>
                </svg>
@@ -120,9 +142,9 @@ const travelsJson = JSON.stringify(mapData);
           <div class="pop-meta">${location}</div>
           <h3 class="pop-title">${t.title}</h3>
           <p class="pop-excerpt">${t.excerpt}</p>
-          <a class="pop-cta text-white" href="${t.url}">
+          <a class="pop-cta" href="${t.url}" aria-label="Ler mais sobre ${t.title}">
             leia mais
-            <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" aria-hidden="true">
               <path d="M0 5h12M8 1l4 4-4 4" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -162,6 +184,13 @@ const travelsJson = JSON.stringify(mapData);
     marker.on("click", () => setActive(t.id));
     marker.addTo(map);
     markers[t.id] = marker;
+
+    // Adiciona aria-label ao elemento gerado pelo Leaflet para acessibilidade
+    const el = marker.getElement();
+    if (el) {
+      el.setAttribute("aria-label", `${t.title} — ${t.locationName}`);
+      el.setAttribute("title", `${t.title} — ${t.locationName}`);
+    }
   });
 
   if (travels.length > 0) {
