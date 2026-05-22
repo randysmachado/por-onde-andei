@@ -1,18 +1,18 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Sidebar from '../components/Sidebar.astro';
-import InteractiveMap from '../components/InteractiveMap.astro';
-import { getCollection } from 'astro:content';
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Sidebar from "../components/Sidebar.astro";
+import InteractiveMap from "../components/InteractiveMap.astro";
+import { getCollection } from "astro:content";
 
-const allLocais = await getCollection('local');
+const allLocais = await getCollection("local");
 const publishedLocais = allLocais
   .filter((t) => !t.data.draft)
   .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
 <BaseLayout
-  title="Por onde andei"
-  description="Locais que visitei — museus, parques, restaurantes e destinos ao redor do mundo."
+  title="Por Onde Andei | De Randys Machado."
+  description="Este projeto é um local onde compartilho relatos de viagens, passeios e experiências em lugares que visitei."
   bodyClass="home-body"
 >
   <div class="shell">
@@ -22,7 +22,9 @@ const publishedLocais = allLocais
 </BaseLayout>
 
 <style is:global>
-  .home-body { overflow: hidden; }
+  .home-body {
+    overflow: hidden;
+  }
 </style>
 
 <style>

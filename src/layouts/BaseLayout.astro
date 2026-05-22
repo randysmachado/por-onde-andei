@@ -16,7 +16,7 @@ interface Props {
 const {
   title,
   description = "Por Onde Andei | De Randys Machado.",
-  ogImage = "/og-default.jpg",
+  ogImage = "/og-image.png",
   ogType = "website",
   publishDate,
   tags = [],
@@ -24,7 +24,7 @@ const {
   bodyClass = "",
 } = Astro.props;
 
-const siteName = "Por onde andei";
+const siteName = "Por Onde Andei | De Randys Machado.";
 const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
 const ogImageURL = new URL(ogImage, Astro.site).toString();
 ---
