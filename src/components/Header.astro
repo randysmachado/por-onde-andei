@@ -1,0 +1,88 @@
+---
+const navLinks = [
+  { href: '/', label: 'Início' },
+  { href: '/viagens', label: 'Viagens' },
+  { href: '/sobre', label: 'Sobre' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-16 items-center justify-between">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2 group">
+        <svg
+          class="w-6 h-6 text-amber-400 group-hover:text-amber-300 transition-colors"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21 4 19 4c-1 0-2 .5-3.5 2L11 9.2 3 7.4c-2-.3-2.5.7-1.2 2L5 12l2 4c.3.6 1 .9 1.6.7L12 15l2.8 1.9c1.3.8 2.9.1 3.4-1.3L17.8 19.2z"/>
+        </svg>
+        <span class="font-display text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+          Minhas Viagens
+        </span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex items-center gap-1">
+        {navLinks.map(({ href, label }) => (
+          <a
+            href={href}
+            class:list={[
+              'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+              currentPath === href
+                ? 'bg-amber-500/10 text-amber-400'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800',
+            ]}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <!-- Mobile Menu Button -->
+      <button
+        id="mobile-menu-btn"
+        class="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+        aria-label="Menu"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Nav -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-slate-950">
+    <nav class="px-4 py-3 flex flex-col gap-1">
+      {navLinks.map(({ href, label }) => (
+        <a
+          href={href}
+          class:list={[
+            'px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+            currentPath === href
+              ? 'bg-amber-500/10 text-amber-400'
+              : 'text-slate-300 hover:text-white hover:bg-slate-800',
+          ]}
+        >
+          {label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
+
+<script>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  btn?.addEventListener('click', () => menu?.classList.toggle('hidden'));
+</script>

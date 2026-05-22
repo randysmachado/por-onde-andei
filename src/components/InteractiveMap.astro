@@ -1,0 +1,221 @@
+---
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+  travels: CollectionEntry<"local">[];
+}
+
+const { travels } = Astro.props;
+
+const mapData = travels
+  .filter((t) => !t.data.draft)
+  .map((t) => ({
+    id: t.id.replace("/index", ""),
+    title: t.data.title,
+    lat: t.data.location.lat,
+    lng: t.data.location.lng,
+    locationName: t.data.location.name,
+    country: t.data.location.country ?? "",
+    date: t.data.date.toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    }),
+    excerpt: t.data.excerpt ?? t.data.description.slice(0, 140),
+    cover: t.data.cover?.src ?? "",
+    url: `/local/${t.id.replace("/index", "")}`,
+  }));
+
+const travelsJson = JSON.stringify(mapData);
+---
+
+<div class="map-wrap" id="map-wrap">
+  <div id="travel-map" data-screen-label="Mapa"></div>
+  <div class="map-hint" id="map-hint">Clique num pin para abrir o local</div>
+</div>
+
+<script type="application/json" id="travels-data" set:html={travelsJson} />
+
+<script>
+  import L from "leaflet";
+  import "leaflet/dist/leaflet.css";
+
+  type TravelData = {
+    id: string;
+    title: string;
+    lat: number;
+    lng: number;
+    locationName: string;
+    country: string;
+    date: string;
+    excerpt: string;
+    cover: string;
+    url: string;
+  };
+
+  const dataEl = document.getElementById("travels-data");
+  if (!dataEl?.textContent) throw new Error("travels-data not found");
+  const travels: TravelData[] = JSON.parse(dataEl.textContent);
+
+  // ── Map init ───────────────────────────────────────────
+  const map = L.map("travel-map", {
+    center: [-14, -53], // Brasil
+    zoom: 5,
+    minZoom: 3,
+    maxZoom: 18,
+    worldCopyJump: true,
+    zoomControl: true,
+  });
+  map.zoomControl.setPosition("bottomright");
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // ── Pin icon builder ──────────────────────────────────────
+  function buildPin(t: TravelData, index: number): L.DivIcon {
+    const num = String(index + 1).padStart(2, "0");
+    if (t.cover) {
+      return L.divIcon({
+        className: "pin-icon",
+        iconSize: [46, 56],
+        iconAnchor: [23, 56],
+        popupAnchor: [0, -58],
+        html: `<div class="pin">
+          <div class="pin-frame" data-num="${num}">
+            <div class="pin-photo" style="background-image:url('${t.cover}')"></div>
+          </div>
+          <div class="pin-tail"></div>
+        </div>`,
+      });
+    }
+    return L.divIcon({
+      className: "pin-icon",
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
+      popupAnchor: [0, -36],
+      html: `<div class="pin-simple"><span>${num}</span></div>`,
+    });
+  }
+
+  // ── Popup HTML ────────────────────────────────────────────
+  function buildPopup(t: TravelData): string {
+    const location = t.country
+      ? `${t.locationName} · ${t.country}`
+      : t.locationName;
+    return `
+      <div>
+        ${
+          t.cover
+            ? `<div class="pop-cover" style="background-image:url('${t.cover}')"></div>`
+            : `<div class="pop-cover" style="background:var(--panel-2);display:flex;align-items:center;justify-content:center;">
+               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(243,238,226,0.2)" stroke-width="1.5">
+                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                 <circle cx="12" cy="10" r="3"/>
+               </svg>
+             </div>`
+        }
+        <div class="pop-body">
+          <div class="pop-meta">${location}</div>
+          <h3 class="pop-title">${t.title}</h3>
+          <p class="pop-excerpt">${t.excerpt}</p>
+          <a class="pop-cta text-white" href="${t.url}">
+            leia mais
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+              <path d="M0 5h12M8 1l4 4-4 4" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+        </div>
+      </div>`;
+  }
+
+  const markers: Record<string, L.Marker> = {};
+
+  function setActive(id: string) {
+    document.querySelectorAll<HTMLElement>(".card").forEach((c) => {
+      c.classList.toggle("active", c.dataset.id === id);
+    });
+    Object.entries(markers).forEach(([k, m]) => {
+      m.getElement()?.classList.toggle("is-active", k === id);
+    });
+  }
+
+  function focusTravel(id: string, open = true) {
+    const t = travels.find((x) => x.id === id);
+    if (!t) return;
+    setActive(id);
+    const m = markers[id];
+    if (!m) return;
+    map.flyTo([t.lat, t.lng], 8, { duration: 1.1 });
+    if (open) setTimeout(() => m.openPopup(), 750);
+    document
+      .querySelector<HTMLElement>(`.card[data-id="${id}"]`)
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  // ── Add markers ────────────────────────────────────────────
+  travels.forEach((t, i) => {
+    const marker = L.marker([t.lat, t.lng], { icon: buildPin(t, i) });
+    marker.bindPopup(buildPopup(t), { maxWidth: 300, closeButton: true });
+    marker.on("click", () => setActive(t.id));
+    marker.addTo(map);
+    markers[t.id] = marker;
+  });
+
+  if (travels.length > 0) {
+    const group = L.featureGroup(travels.map((t) => L.marker([t.lat, t.lng])));
+    map.fitBounds(group.getBounds().pad(0.4));
+    if (travels.length === 1) map.setZoom(10);
+  }
+
+  // ── Sidebar card click ────────────────────────────────────────
+  document.querySelectorAll<HTMLAnchorElement>(".card").forEach((card) => {
+    card.addEventListener("click", (e) => {
+      e.preventDefault();
+      const id = card.dataset.id;
+      if (id) focusTravel(id, true);
+    });
+  });
+
+  // ── Hint ────────────────────────────────────────────────────
+  const hint = document.getElementById("map-hint");
+  if (hint) {
+    hint.classList.add("visible");
+    setTimeout(() => hint.classList.remove("visible"), 4000);
+  }
+</script>
+
+<style>
+  .map-wrap {
+    position: relative;
+    background: #2a2622;
+    height: 100%;
+  }
+  #travel-map {
+    position: absolute;
+    inset: 0;
+    background: #2a2622;
+  }
+  .map-hint {
+    position: absolute;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--ui);
+    font-size: 12px;
+    color: var(--ink-3);
+    background: rgba(22, 21, 19, 0.75);
+    padding: 6px 14px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 500;
+    white-space: nowrap;
+  }
+  .map-hint.visible {
+    opacity: 1;
+  }
+</style>

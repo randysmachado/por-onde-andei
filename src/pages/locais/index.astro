@@ -1,0 +1,328 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const allLocais = await getCollection("local");
+const publishedLocais = allLocais
+  .filter((t) => !t.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+const slugify = (str: string) =>
+  str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
+const allCategories = [
+  ...new Set(publishedLocais.map((t) => t.data.category)),
+].sort();
+const total = publishedLocais.length;
+---
+
+<BaseLayout
+  title="Locais visitados"
+  description="Todos os locais que visitei — museus, parques, restaurantes e destinos ao redor do mundo."
+>
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="/" class="topnav-back">
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path
+            d="M14 5H2M6 1L2 5l4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        voltar ao mapa
+      </a>
+      <a href="/" class="topnav-brand">Por onde andei</a>
+      <div class="topnav-index">{total} {total === 1 ? "local" : "locais"}</div>
+    </div>
+  </nav>
+
+  <main class="page-main">
+    <header class="page-head">
+      <div class="page-head-inner">
+        <p class="eyebrow">Locais visitados</p>
+        <h1>Por onde andei</h1>
+        <p class="subhead">
+          {total}
+          {total === 1 ? "local registrado" : "locais registrados"}
+        </p>
+      </div>
+    </header>
+
+    {
+      allCategories.length > 0 && (
+        <div class="filter-wrap">
+          <div class="filter-inner">
+            <button class="pill pill-active" data-cat="all">
+              Todos
+            </button>
+            {allCategories.map((cat) => (
+              <a class="pill" href={`/${slugify(cat)}/`}>
+                {cat}
+              </a>
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    <div class="grid-wrap">
+      <div id="locais-grid" class="locais-grid">
+        {
+          publishedLocais.map((t) => {
+            const slug = t.id.replace("/index", "");
+            const url = `/local/${slug}`;
+            const thumb = t.data.cover?.src ?? "";
+            const date = t.data.date.toLocaleDateString("pt-BR", {
+              month: "long",
+              year: "numeric",
+            });
+            const cats = t.data.category;
+
+            return (
+              <a class="lcard" href={url} data-cat={cats}>
+                <div
+                  class="lcard-img"
+                  style={thumb ? `background-image:url('${thumb}')` : ""}
+                >
+                  {!thumb && (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  )}
+                </div>
+                <div class="lcard-body">
+                  <div class="lcard-eyebrow">
+                    <span>{t.data.location.name}</span>
+                    {t.data.location.country && (
+                      <>
+                        <span class="lcard-dot" />
+                        <span>{t.data.location.country}</span>
+                      </>
+                    )}
+                    <span class="lcard-dot" />
+                    <span>{date}</span>
+                  </div>
+                  <h2 class="lcard-title">{t.data.title}</h2>
+                  <div class="lcard-cats">
+                    <span class="cat-pill">{t.data.category}</span>
+                  </div>
+                </div>
+              </a>
+            );
+          })
+        }
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<script>
+  const pills = document.querySelectorAll<HTMLButtonElement>(".pill");
+  const cards = document.querySelectorAll<HTMLAnchorElement>(".lcard");
+
+  const allBtn = document.querySelector<HTMLButtonElement>(
+    '.pill[data-cat="all"]',
+  );
+  allBtn?.addEventListener("click", () => {
+    allBtn.classList.add("pill-active");
+    cards.forEach((card) => ((card as HTMLElement).style.display = ""));
+  });
+</script>
+
+<style>
+  .page-main {
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  .page-head {
+    padding: 72px 32px 48px;
+    border-bottom: 1px solid var(--line);
+  }
+  .page-head-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: var(--ui);
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    margin: 0 0 12px;
+  }
+  .page-head h1 {
+    font-family: var(--display);
+    font-size: clamp(56px, 8vw, 120px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 16px;
+  }
+  .subhead {
+    font-family: var(--ui);
+    font-size: 14px;
+    color: var(--ink-3);
+    margin: 0;
+  }
+
+  .filter-wrap {
+    border-bottom: 1px solid var(--line);
+    padding: 0 32px;
+  }
+  .filter-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px 0;
+  }
+  .pill {
+    font-family: var(--ui);
+    font-size: 12px;
+    font-weight: var(--eyebrow-fw);
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: 0.08em;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line-2);
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      background 0.15s,
+      color 0.15s;
+  }
+  .pill:hover {
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+  .pill-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a1411;
+  }
+
+  .grid-wrap {
+    padding: 48px 32px 80px;
+  }
+  .locais-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .lcard {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .lcard-img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--panel-2);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    transition: transform 0.5s ease;
+    overflow: hidden;
+  }
+  .lcard:hover .lcard-img {
+    transform: scale(1.04);
+  }
+  .lcard-body {
+    padding: 20px 22px 24px;
+  }
+  .lcard-eyebrow {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .lcard-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .lcard-title {
+    font-family: var(--display);
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 10px;
+    transition: color 0.15s;
+  }
+  .lcard:hover .lcard-title {
+    color: var(--accent);
+  }
+  .lcard-cats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .cat-pill {
+    font-family: var(--ui);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(230, 134, 58, 0.25);
+  }
+
+  @media (max-width: 960px) {
+    .locais-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .locais-grid {
+      grid-template-columns: 1fr;
+    }
+    .page-head {
+      padding: 56px 20px 36px;
+    }
+    .filter-wrap {
+      padding: 0 20px;
+    }
+    .grid-wrap {
+      padding: 32px 20px 56px;
+    }
+  }
+</style>

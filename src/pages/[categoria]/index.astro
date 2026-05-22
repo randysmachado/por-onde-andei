@@ -1,0 +1,249 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const slugify = (str: string) =>
+  str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
+
+export async function getStaticPaths() {
+  const slugify = (str: string) =>
+    str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
+
+  const allLocais = await getCollection("local");
+  const published = allLocais.filter((t) => !t.data.draft);
+  const allCats = [...new Set(published.map((t) => t.data.category))];
+
+  return allCats.map((cat) => ({
+    params: { categoria: slugify(cat) },
+    props: {
+      categoriaLabel: cat,
+      locais: published
+        .filter((t) => t.data.category === cat)
+        .sort((a, b) => b.data.date.getTime() - a.data.date.getTime()),
+    },
+  }));
+}
+
+const { categoriaLabel, locais } = Astro.props;
+const total = locais.length;
+const catSlug = slugify(categoriaLabel);
+---
+
+<BaseLayout
+  title={`${categoriaLabel} — Por onde andei`}
+  description={`Todos os locais na categoria ${categoriaLabel}.`}
+>
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="/locais" class="topnav-back">
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path
+            d="M14 5H2M6 1L2 5l4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        todos os locais
+      </a>
+      <a href="/" class="topnav-brand">Por onde andei</a>
+      <div class="topnav-index">{total} {total === 1 ? "local" : "locais"}</div>
+    </div>
+  </nav>
+
+  <main class="cat-main">
+    <header class="cat-head">
+      <div class="cat-head-inner">
+        <p class="eyebrow">Em</p>
+        <h1>{categoriaLabel}</h1>
+        <p class="subhead">
+          {total}
+          {total === 1 ? " local" : " locais"}
+        </p>
+      </div>
+    </header>
+
+    <div class="cat-grid-wrap">
+      <div class="cat-grid">
+        {
+          locais.map((t) => {
+            const slug = t.id.replace("/index", "");
+            const url = `/local/${slug}`;
+            const thumb = t.data.cover?.src ?? "";
+            const date = t.data.date.toLocaleDateString("pt-BR", {
+              month: "long",
+              year: "numeric",
+            });
+
+            return (
+              <a class="lcard" href={url}>
+                <div
+                  class="lcard-img"
+                  style={thumb ? `background-image:url('${thumb}')` : ""}
+                >
+                  {!thumb && (
+                    <svg
+                      width="28"
+                      height="28"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                  )}
+                </div>
+                <div class="lcard-body">
+                  <div class="lcard-eyebrow">
+                    <span>{t.data.location.name}</span>
+                    {t.data.location.country && (
+                      <>
+                        <span class="lcard-dot" />
+                        <span>{t.data.location.country}</span>
+                      </>
+                    )}
+                    <span class="lcard-dot" />
+                    <span>{date}</span>
+                  </div>
+                  <h2 class="lcard-title">{t.data.title}</h2>
+                </div>
+              </a>
+            );
+          })
+        }
+      </div>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .cat-main {
+    min-height: 100vh;
+    background: var(--bg);
+  }
+
+  .cat-head {
+    padding: 72px 32px 48px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cat-head-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: var(--ui);
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    margin: 0 0 12px;
+  }
+  .cat-head h1 {
+    font-family: var(--display);
+    font-size: clamp(56px, 8vw, 120px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 16px;
+  }
+  .subhead {
+    font-family: var(--ui);
+    font-size: 14px;
+    color: var(--ink-3);
+    margin: 0;
+  }
+
+  .cat-grid-wrap {
+    padding: 48px 32px 80px;
+  }
+  .cat-grid {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .lcard {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .lcard-img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: var(--panel-2);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    transition: transform 0.5s ease;
+    overflow: hidden;
+  }
+  .lcard:hover .lcard-img {
+    transform: scale(1.04);
+  }
+  .lcard-body {
+    padding: 20px 22px 24px;
+  }
+  .lcard-eyebrow {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .lcard-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .lcard-title {
+    font-family: var(--display);
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0;
+    transition: color 0.15s;
+  }
+  .lcard:hover .lcard-title {
+    color: var(--accent);
+  }
+
+  @media (max-width: 960px) {
+    .cat-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 600px) {
+    .cat-grid {
+      grid-template-columns: 1fr;
+    }
+    .cat-head {
+      padding: 56px 20px 36px;
+    }
+    .cat-grid-wrap {
+      padding: 32px 20px 56px;
+    }
+  }
+</style>

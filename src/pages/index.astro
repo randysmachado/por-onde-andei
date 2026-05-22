@@ -1,11 +1,44 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Sidebar from '../components/Sidebar.astro';
+import InteractiveMap from '../components/InteractiveMap.astro';
+import { getCollection } from 'astro:content';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const allLocais = await getCollection('local');
+const publishedLocais = allLocais
+  .filter((t) => !t.data.draft)
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<BaseLayout
+  title="Por onde andei"
+  description="Locais que visitei — museus, parques, restaurantes e destinos ao redor do mundo."
+  bodyClass="home-body"
+>
+  <div class="shell">
+    <Sidebar />
+    <InteractiveMap travels={publishedLocais} />
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .home-body { overflow: hidden; }
+</style>
+
+<style>
+  .shell {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 880px) {
+    .shell {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+  }
+</style>

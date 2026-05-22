@@ -1,0 +1,150 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Sobre"
+  description="Conheça mais sobre mim e a ideia por trás do Por onde andei."
+>
+  <!-- ── Top nav ── -->
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="/" class="topnav-back">
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path
+            d="M14 5H2M6 1L2 5l4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        voltar ao mapa
+      </a>
+      <a href="/" class="topnav-brand">Por onde andei</a>
+      <div></div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="content">
+      <p class="eyebrow">Sobre</p>
+      <h1>Por onde andei</h1>
+
+      <div class="prose">
+        <p>
+          Olá! Este é o meu espaço para registrar os lugares que visitei — não
+          só viagens longas, mas também pescarias, bares, rios e qualquer lugar
+          que valha a pena lembrar.
+        </p>
+
+        <p>
+          Cada entrada tem uma localização no mapa, fotos e um relato do que foi
+          aquele lugar para mim. É um diário pessoal, mas público — talvez
+          inspire você a visitar algum desses locais também.
+        </p>
+
+        <h2>Por que registrar?</h2>
+
+        <p>
+          A memória é traiçoeira. Lugares que marcaram se misturam com o tempo e
+          perdem os detalhes. Escrever e fotografar é uma forma de guardar não
+          só o que vi, mas o que senti.
+        </p>
+
+        <p>
+          Espero que o mapa seja uma boa forma de explorar — clique nos pins,
+          veja as fotos, leia sobre.
+        </p>
+      </div>
+
+      <a href="/" class="back-link">
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path
+            d="M14 5H2M6 1L2 5l4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        ver o mapa
+      </a>
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .main {
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 80px 32px;
+  }
+  .content {
+    max-width: 640px;
+    width: 100%;
+  }
+  .eyebrow {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--accent);
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 1;
+    letter-spacing: 0.01em;
+    font-weight: 400;
+    color: var(--ink);
+    margin: 0 0 48px;
+  }
+  .prose {
+    border-top: 1px solid var(--line);
+    padding-top: 36px;
+    margin-bottom: 48px;
+  }
+  .prose h2 {
+    font-family: var(--display);
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin: 2rem 0 0.8rem;
+    line-height: 1.05;
+  }
+  .prose p {
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    margin: 0 0 1.4rem;
+    text-wrap: pretty;
+  }
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--ui);
+    font-size: 12px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .back-link:hover {
+    color: var(--accent);
+  }
+
+  @media (max-width: 600px) {
+    .main {
+      padding: 56px 20px;
+    }
+  }
+</style>

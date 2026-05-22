@@ -1,0 +1,501 @@
+---
+import { getCollection, render } from "astro:content";
+import type { ImageMetadata } from "astro";
+import { Image } from "astro:assets";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Gallery from "../../components/Gallery.astro";
+
+const slugify = (str: string) =>
+  str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
+
+export async function getStaticPaths() {
+  const all = (await getCollection("local"))
+    .filter((t) => !t.data.draft)
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+
+  return all.map((entry, i) => ({
+    params: { slug: entry.id.replace("/index", "") },
+    props: {
+      entry,
+      idx: i,
+      total: all.length,
+      prev: all[(i - 1 + all.length) % all.length],
+      next: all[(i + 1) % all.length],
+    },
+  }));
+}
+
+const { entry, idx, total, prev, next } = Astro.props;
+const { Content } = await render(entry);
+
+const { title, description, date, cover, location, tags, category } =
+  entry.data;
+const slug = entry.id.replace("/index", "");
+
+const allImages = import.meta.glob<{ default: ImageMetadata }>(
+  "/content/local/**/*.{jpg,jpeg,png,webp,gif,avif}",
+  { eager: true },
+);
+const galleryImages: ImageMetadata[] = Object.entries(allImages)
+  .filter(([path]) => path.includes(`/content/local/${slug}/imagens/`))
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, mod]) => mod.default);
+
+const formattedDate = date.toLocaleDateString("pt-BR", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
+const indexLabel = `${String(idx + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
+const ogImage = cover ? Astro.url.origin + cover.src : undefined;
+
+const prevSlug = prev.id.replace("/index", "");
+const nextSlug = next.id.replace("/index", "");
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  ogImage={ogImage}
+  ogType="article"
+  publishDate={date}
+  tags={tags}
+>
+  <!-- ── Top nav ── -->
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a href="/" class="topnav-back">
+        <svg width="14" height="10" viewBox="0 0 14 10" fill="none">
+          <path
+            d="M14 5H2M6 1L2 5l4 4"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"></path>
+        </svg>
+        voltar ao mapa
+      </a>
+      <a href="/" class="topnav-brand">Por onde andei</a>
+      <div class="topnav-index">{indexLabel}</div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ── Hero ── -->
+    <section class="hero">
+      <div
+        class="hero-img"
+        style={cover ? `background-image:url('${cover.src}')` : ""}
+      >
+        {
+          cover && (
+            <Image
+              src={cover}
+              alt={title}
+              class="hero-img-tag"
+              widths={[800, 1200, 1920]}
+              sizes="100vw"
+            />
+          )
+        }
+      </div>
+      <div class="hero-overlay"></div>
+      <div class="hero-text">
+        <div class="hero-text-inner">
+          <div class="hero-eyebrow">
+            <span>{location.name}</span>
+            {
+              location.country && (
+                <>
+                  <span class="dot" />
+                  <span>{location.country}</span>
+                </>
+              )
+            }
+            <span class="dot"></span>
+            <span>{formattedDate}</span>
+          </div>
+          <h1>{title}</h1>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Meta strip ── -->
+    <section class="meta-strip">
+      <div class="meta-inner">
+        <div class="meta-item">
+          <div class="meta-lbl">Local</div>
+          <div class="meta-val">{location.name}</div>
+        </div>
+        {
+          location.country && (
+            <div class="meta-item">
+              <div class="meta-lbl">País</div>
+              <div class="meta-val">{location.country}</div>
+            </div>
+          )
+        }
+        <div class="meta-item">
+          <div class="meta-lbl">Quando</div>
+          <div class="meta-val">
+            {
+              date.toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })
+            }
+          </div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-lbl">Em</div>
+          <div class="meta-val meta-tags">
+            <a href={`/${slugify(category)}/`} class="tag">{category}</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Article ── -->
+    <article class="article">
+      <p class="lead">{description}</p>
+      <div class="body mdx-content">
+        <Content />
+      </div>
+
+      <!-- Tags after content -->
+      {
+        tags && tags.length > 0 && (
+          <div class="article-tags">
+            {tags.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+          </div>
+        )
+      }
+    </article>
+
+    <!-- ── Gallery ── -->
+    <div class="gallery-wrap">
+      <Gallery images={galleryImages} />
+    </div>
+
+    <!-- ── Post nav ── -->
+    <nav class="post-nav">
+      <a class="nav-card prev" href={`/local/${prevSlug}`}>
+        <span class="nav-lbl">← anterior</span>
+        <span class="nav-title">{prev.data.title}</span>
+      </a>
+      <a class="nav-card next" href={`/local/${nextSlug}`}>
+        <span class="nav-lbl">próximo →</span>
+        <span class="nav-title">{next.data.title}</span>
+      </a>
+    </nav>
+  </main>
+</BaseLayout>
+
+<style>
+  /* ── Hero ── */
+  .hero {
+    position: relative;
+    height: 72vh;
+    min-height: 480px;
+    overflow: hidden;
+    background: var(--panel-2);
+  }
+  .hero-img {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.03);
+  }
+  .hero-img-tag {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.08) 0%,
+      rgba(0, 0, 0, 0.15) 50%,
+      rgba(0, 0, 0, 0.72) 100%
+    );
+  }
+  .hero-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0 32px 52px;
+    color: #fff;
+    z-index: 2;
+  }
+  .hero-text-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .hero-eyebrow {
+    font-family: var(--ui);
+    font-size: 12px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    opacity: 0.9;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-eyebrow .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+  }
+  .hero h1 {
+    font-family: var(--display);
+    font-size: clamp(48px, 7vw, 108px);
+    line-height: 1.02;
+    letter-spacing: 0.005em;
+    font-weight: 400;
+    margin: 0;
+    max-width: 20ch;
+    text-wrap: balance;
+  }
+
+  /* ── Meta strip ── */
+  .meta-strip {
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .meta-inner {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .meta-lbl {
+    font-family: var(--ui);
+    font-size: 10px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .meta-val {
+    font-family: var(--display);
+    font-size: 22px;
+    line-height: 1.1;
+    color: var(--ink);
+    letter-spacing: 0.005em;
+  }
+  .meta-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-family: var(--ui);
+    font-size: 11px;
+  }
+  .tag {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgba(230, 134, 58, 0.3);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .tag:hover {
+    background: rgba(230, 134, 58, 0.25);
+  }
+
+  /* ── Article ── */
+  .article {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 64px 32px 16px;
+  }
+  .lead {
+    font-family: var(--body);
+    font-size: 21px;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0 0 36px;
+    text-wrap: pretty;
+    border-left: 3px solid var(--accent);
+    padding-left: 20px;
+  }
+  .mdx-content :global(h2) {
+    font-family: var(--display);
+    font-size: 38px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin: 2.2rem 0 0.8rem;
+    line-height: 1.05;
+    font-weight: 400;
+  }
+  .mdx-content :global(h3) {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    margin: 1.8rem 0 0.6rem;
+    font-weight: 400;
+  }
+  .mdx-content :global(p) {
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink-2);
+    margin: 0 0 1.4rem;
+    text-wrap: pretty;
+  }
+  .mdx-content :global(strong) {
+    color: var(--ink);
+  }
+  .mdx-content :global(a) {
+    color: var(--accent);
+  }
+  .mdx-content :global(blockquote) {
+    border-left: 3px solid var(--accent);
+    padding-left: 1.2rem;
+    margin: 1.5rem 0;
+    color: var(--ink-2);
+    font-style: italic;
+  }
+  .mdx-content :global(ul) {
+    padding-left: 1.5rem;
+    color: var(--ink-2);
+    font-size: 17px;
+    line-height: 1.7;
+    list-style-type: disc;
+  }
+  .mdx-content :global(ol) {
+    padding-left: 1.5rem;
+    color: var(--ink-2);
+    font-size: 17px;
+    line-height: 1.7;
+    list-style-type: decimal;
+  }
+  .mdx-content :global(li) {
+    margin-bottom: 0.4rem;
+  }
+  .mdx-content :global(ul li::marker),
+  .mdx-content :global(ol li::marker) {
+    color: var(--accent);
+  }
+  .mdx-content :global(code) {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--panel-2);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .mdx-content :global(hr) {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 2.5rem 0;
+  }
+
+  /* Tags after article content */
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ── Gallery wrapper ── */
+  .gallery-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px 32px;
+  }
+
+  /* ── Post nav ── */
+  .post-nav {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px 80px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .nav-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 24px 0;
+    border-top: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+    transition: border-color 0.2s;
+  }
+  .nav-card:hover {
+    border-color: var(--accent);
+  }
+  .nav-card.next {
+    text-align: right;
+    align-items: flex-end;
+  }
+  .nav-lbl {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+  }
+  .nav-title {
+    font-family: var(--display);
+    font-size: 26px;
+    letter-spacing: 0.01em;
+    transition: color 0.15s;
+    line-height: 1.1;
+  }
+  .nav-card:hover .nav-title {
+    color: var(--accent);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 720px) {
+    .meta-inner {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .hero-text {
+      padding: 0 20px 32px;
+    }
+    .article {
+      padding: 40px 20px 12px;
+    }
+    .gallery-wrap {
+      padding: 0 20px 24px;
+    }
+    .post-nav {
+      grid-template-columns: 1fr;
+      padding: 0 20px 56px;
+    }
+    .nav-card.next {
+      text-align: left;
+      align-items: flex-start;
+    }
+  }
+</style>

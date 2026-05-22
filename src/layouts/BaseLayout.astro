@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishDate?: Date;
+  tags?: string[];
+  canonicalURL?: string;
+  bodyClass?: string;
+}
+
+const {
+  title,
+  description = 'Locais que visitei — museus, parques, restaurantes e destinos ao redor do mundo.',
+  ogImage = '/og-default.jpg',
+  ogType = 'website',
+  publishDate,
+  tags = [],
+  canonicalURL = Astro.url.href,
+  bodyClass = '',
+} = Astro.props;
+
+const siteName = 'Por onde andei';
+const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
+---
+
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Open Graph -->
+    <meta property="og:type"        content={ogType} />
+    <meta property="og:url"         content={canonicalURL} />
+    <meta property="og:title"       content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image"       content={new URL(ogImage, Astro.site)} />
+    <meta property="og:site_name"   content={siteName} />
+    <meta property="og:locale"      content="pt_BR" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image"       content={new URL(ogImage, Astro.site)} />
+
+    {publishDate && <meta property="article:published_time" content={publishDate.toISOString()} />}
+    {tags.map((tag) => <meta property="article:tag" content={tag} />)}
+
+    <link rel="icon"    type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!-- Fonts: Bebas Neue + Manrope -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class={bodyClass}>
+    <slot />
+  </body>
+</html>
