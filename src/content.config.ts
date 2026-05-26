@@ -18,6 +18,7 @@ const local = defineCollection({
       tags: z.array(z.string()).optional().default([]),
       category: z.string(),
       excerpt: z.string().optional(),
+      updatedDate: z.coerce.date().optional(),
       draft: z.boolean().optional().default(false),
     }),
 });

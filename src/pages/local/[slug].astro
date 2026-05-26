@@ -19,8 +19,8 @@ export async function getStaticPaths() {
       entry,
       idx: i,
       total: all.length,
-      prev: all[(i - 1 + all.length) % all.length],
-      next: all[(i + 1) % all.length],
+      prev: i > 0 ? all[i - 1] : null,
+      next: i < all.length - 1 ? all[i + 1] : null,
     },
   }));
 }
@@ -28,7 +28,7 @@ export async function getStaticPaths() {
 const { entry, idx, total, prev, next } = Astro.props;
 const { Content } = await render(entry);
 
-const { title, description, date, cover, location, tags, category } =
+const { title, description, date, updatedDate, cover, location, tags, category } =
   entry.data;
 const slug = entry.id.replace("/index", "");
 
@@ -49,8 +49,8 @@ const formattedDate = date.toLocaleDateString("pt-BR", {
 const indexLabel = `${String(idx + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`;
 const ogImage = cover ? Astro.url.origin + cover.src : undefined;
 
-const prevSlug = prev.id.replace("/index", "");
-const nextSlug = next.id.replace("/index", "");
+const prevSlug = prev?.id.replace("/index", "");
+const nextSlug = next?.id.replace("/index", "");
 ---
 
 <BaseLayout
@@ -59,6 +59,7 @@ const nextSlug = next.id.replace("/index", "");
   ogImage={ogImage}
   ogType="article"
   publishDate={date}
+  updatedDate={updatedDate}
   tags={tags}
   schemaType="article"
   locationName={location.name}
@@ -181,19 +182,23 @@ const nextSlug = next.id.replace("/index", "");
 
     <!-- ── Gallery ── -->
     <div class="gallery-wrap">
-      <Gallery images={galleryImages} />
+      <Gallery images={galleryImages} title={title} />
     </div>
 
     <!-- ── Post nav ── -->
     <nav class="post-nav">
-      <a class="nav-card prev" href={`/local/${prevSlug}`}>
-        <span class="nav-lbl">← anterior</span>
-        <span class="nav-title">{prev.data.title}</span>
-      </a>
-      <a class="nav-card next" href={`/local/${nextSlug}`}>
-        <span class="nav-lbl">próximo →</span>
-        <span class="nav-title">{next.data.title}</span>
-      </a>
+      {prev && (
+        <a class="nav-card prev" href={`/local/${prevSlug}`}>
+          <span class="nav-lbl">← anterior</span>
+          <span class="nav-title">{prev.data.title}</span>
+        </a>
+      )}
+      {next && (
+        <a class="nav-card next" href={`/local/${nextSlug}`}>
+          <span class="nav-lbl">próximo →</span>
+          <span class="nav-title">{next.data.title}</span>
+        </a>
+      )}
     </nav>
   </main>
 </BaseLayout>

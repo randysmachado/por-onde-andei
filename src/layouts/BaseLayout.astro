@@ -11,6 +11,7 @@ interface Props {
   ogImage?: string;
   ogType?: "website" | "article";
   publishDate?: Date;
+  updatedDate?: Date;
   tags?: string[];
   canonicalURL?: string;
   bodyClass?: string;
@@ -38,10 +39,11 @@ const {
   lng,
   country,
   category,
+  updatedDate,
 } = Astro.props;
 
 const siteName = "Por Onde Andei | De Randys Machado.";
-const fullTitle = title === siteName ? title : `${title} · ${siteName}`;
+const fullTitle = title === siteName ? title : `${title} · Por Onde Andei`;
 const ogImageURL = new URL(ogImage, Astro.site).toString();
 const logoURL = new URL(logo.src, Astro.site).toString();
 
@@ -73,6 +75,9 @@ const logoURL = new URL(logo.src, Astro.site).toString();
         },
         image: {
           alt: fullTitle,
+          width: 1200,
+          height: 630,
+          type: "image/webp",
         },
         ...(ogType === "article"
           ? {
@@ -85,6 +90,8 @@ const logoURL = new URL(logo.src, Astro.site).toString();
       }}
       twitter={{
         card: "summary_large_image",
+        site: "@randysmachado",
+        creator: "@randysmachado",
         title: fullTitle,
         description,
         image: ogImageURL,
@@ -131,6 +138,7 @@ const logoURL = new URL(logo.src, Astro.site).toString();
       url={canonicalURL}
       image={ogImageURL}
       publishDate={publishDate}
+      updatedDate={updatedDate}
       tags={tags}
       locationName={locationName}
       lat={lat}

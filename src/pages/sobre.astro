@@ -1,5 +1,6 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { Icon } from "astro-icon/components";
 ---
 
 <BaseLayout
@@ -56,6 +57,21 @@ import BaseLayout from "../layouts/BaseLayout.astro";
           Espero que o mapa seja uma boa forma de explorar — clique nos pins,
           veja as fotos, leia sobre.
         </p>
+      </div>
+
+      <div class="social-links">
+        <p class="social-label">Minhas redes</p>
+        <div class="social-icons">
+          <a href="https://www.instagram.com/randysmachado/" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Instagram de Randys Machado">
+            <Icon name="instagram" />
+          </a>
+          <a href="https://x.com/randysmachado" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="X (Twitter) de Randys Machado">
+            <Icon name="x" />
+          </a>
+          <a href="mailto:randys.machado@gmail.com" class="social-link" aria-label="E-mail de Randys Machado">
+            <Icon name="mail" />
+          </a>
+        </div>
       </div>
 
       <a href="/" class="back-link">
@@ -126,6 +142,42 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     margin: 0 0 1.4rem;
     text-wrap: pretty;
   }
+  .social-links {
+    margin-bottom: 40px;
+    padding-top: 32px;
+    border-top: 1px solid var(--line);
+  }
+  .social-label {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    margin: 0 0 14px;
+  }
+  .social-icons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-3);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .social-link:hover {
+    color: var(--accent);
+  }
+  .social-link :global(svg) {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+  }
+
   .back-link {
     display: inline-flex;
     align-items: center;

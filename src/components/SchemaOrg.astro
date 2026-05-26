@@ -1,12 +1,4 @@
 ---
-/**
- * SchemaOrg.astro — JSON-LD structured data component
- *
- * Gera schema.org para rich results no Google Search.
- * Sempre inclui WebSite + Person. Schemas adicionais
- * dependem do `type` passado pelo pai.
- */
-
 // "website" | "article" (local/[slug]) | "collection" (locais) | "about" (sobre)
 export type SchemaType = "website" | "article" | "collection" | "about";
 
@@ -17,6 +9,7 @@ interface Props {
   url: string;
   image?: string;
   publishDate?: Date;
+  updatedDate?: Date;
   tags?: string[];
   // Específico para artigos de local
   locationName?: string;
@@ -33,6 +26,7 @@ const {
   url,
   image,
   publishDate,
+  updatedDate,
   tags = [],
   locationName,
   lat,
@@ -45,9 +39,14 @@ const siteUrl = "https://porondeandei.randys.dev";
 const siteName = "Por Onde Andei";
 const authorName = "Randys Machado";
 
-// Remove o sufixo "· Por Onde Andei..." para usar como headline puro
-const SUFFIX = ` · ${siteName} | De ${authorName}.`;
-const headline = title.endsWith(SUFFIX) ? title.slice(0, -SUFFIX.length) : title;
+// Remove o sufixo do título para usar como headline puro
+const SUFFIX_LONG = ` · ${siteName} | De ${authorName}.`;
+const SUFFIX_SHORT = ` · ${siteName}`;
+const headline = title.endsWith(SUFFIX_LONG)
+  ? title.slice(0, -SUFFIX_LONG.length)
+  : title.endsWith(SUFFIX_SHORT)
+    ? title.slice(0, -SUFFIX_SHORT.length)
+    : title;
 
 // ── Entidade base: Person (autor) ─────────────────────────────
 const person = {
@@ -55,9 +54,10 @@ const person = {
   "@id": `${siteUrl}/#author`,
   name: authorName,
   url: siteUrl,
+  sameAs: ["https://twitter.com/randysmachado"],
 };
 
-// ── WebSite (todas as páginas) ────────────────────────────────
+// ── WebSite (todas as páginas) — sem SearchAction (filtro é client-side)
 const website = {
   "@type": "WebSite",
   "@id": `${siteUrl}/#website`,
@@ -66,14 +66,6 @@ const website = {
   description:
     "Diário de viagens e passeios de Randys Machado — locais, fotos e histórias pelo Brasil e pelo mundo.",
   publisher: { "@id": `${siteUrl}/#author` },
-  potentialAction: {
-    "@type": "SearchAction",
-    target: {
-      "@type": "EntryPoint",
-      urlTemplate: `${siteUrl}/locais/?q={search_term_string}`,
-    },
-    "query-input": "required name=search_term_string",
-  },
   inLanguage: "pt-BR",
 };
 
@@ -93,11 +85,22 @@ const webpage = {
 const conditionalSchemas: object[] = [];
 
 if (type === "article") {
+  // BreadcrumbList — hierarquia da página no site
+  const breadcrumb = {
+    "@type": "BreadcrumbList",
+    "@id": `${url}#breadcrumb`,
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/` },
+      { "@type": "ListItem", position: 2, name: "Locais", item: `${siteUrl}/locais/` },
+      { "@type": "ListItem", position: 3, name: headline },
+    ],
+  };
+
   // TouristAttraction — o local visitado
   const place: Record<string, unknown> = {
-    "@type": ["TouristAttraction", "LandmarksOrHistoricalBuildings"],
+    "@type": "TouristAttraction",
     "@id": `${url}#place`,
-    name: locationName ?? title,
+    name: locationName ?? headline,
     ...(country ? { addressCountry: country } : {}),
   };
 
@@ -142,7 +145,7 @@ if (type === "article") {
     ...(publishDate
       ? {
           datePublished: publishDate.toISOString(),
-          dateModified: publishDate.toISOString(),
+          dateModified: (updatedDate ?? publishDate).toISOString(),
         }
       : {}),
     ...(tags.length > 0 ? { keywords: tags.join(", ") } : {}),
@@ -151,7 +154,7 @@ if (type === "article") {
     isPartOf: { "@id": `${siteUrl}/#website` },
   };
 
-  conditionalSchemas.push(place, blogPost);
+  conditionalSchemas.push(breadcrumb, place, blogPost);
 }
 
 if (type === "collection") {

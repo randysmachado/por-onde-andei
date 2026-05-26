@@ -31,11 +31,11 @@ const { images, title = 'Galeria' } = Astro.props;
         <button
           class="group relative aspect-square overflow-hidden rounded-[6px] cursor-pointer border-0 p-0 bg-panel-2"
           data-index={index}
-          aria-label={`Ver foto ${index + 1}`}
+          aria-label={`Ver foto ${index + 1} de ${title}`}
         >
           <Image
             src={img}
-            alt={`Foto ${index + 1}`}
+            alt={`${title} — foto ${index + 1}`}
             class="w-full h-full object-cover block transition-[transform,filter] duration-500 ease-out group-hover:scale-[1.06] group-hover:brightness-75"
             widths={[400, 800]}
             sizes="(max-width: 640px) 50vw, 33vw"

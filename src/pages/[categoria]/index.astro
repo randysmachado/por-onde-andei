@@ -31,7 +31,7 @@ const catSlug = slugify(categoriaLabel);
 
 <BaseLayout
   title={`${categoriaLabel} — Por onde andei`}
-  description={`Todos os locais na categoria ${categoriaLabel}.`}
+  description={`${total} ${total === 1 ? 'local visitado' : 'locais visitados'} na categoria ${categoriaLabel} — relatos de viagens e passeios pelo Brasil por Randys Machado.`}
   schemaType="collection"
 >
   <nav class="topnav">

@@ -1,0 +1,32 @@
+# Por Onde Andei
+
+> Diário de viagens e passeios de Randys Machado — relatos pessoais de locais visitados pelo Brasil, com fotos e localização geográfica.
+
+## Sobre o site
+
+Por Onde Andei é um blog pessoal de viagens escrito por Randys Machado. Cada entrada cobre um local visitado — cachoeiras, praias de rio, zoológicos, parques naturais — com relato de primeira pessoa, galeria de fotos e coordenadas GPS no mapa interativo.
+
+## Autor
+
+Randys Machado
+Site: https://porondeandei.randys.dev
+Sobre: https://porondeandei.randys.dev/sobre/
+Twitter/X: @randysmachado
+
+## Locais Publicados
+
+- Cachoeira das Araras (Taquaruçu, TO): https://porondeandei.randys.dev/local/cachoeira-das-araras/
+- Zoológico de Brasília (Brasília, DF): https://porondeandei.randys.dev/local/zoologico-brasilia/
+- Cachoeira da Iracema (Formoso, GO): https://porondeandei.randys.dev/local/cachoeira-da-iracema/
+- Praia do Pontão do Araguaia (Vila São José, PA): https://porondeandei.randys.dev/local/praia-do-pontao/
+- Praia do Paredão e Praia do Funil (Miracema, TO): https://porondeandei.randys.dev/local/praia-paredao-e-praia-funil/
+
+## Listagens
+
+- Todos os locais: https://porondeandei.randys.dev/locais/
+- Passeios: https://porondeandei.randys.dev/passeios/
+- Viagens: https://porondeandei.randys.dev/viagens/
+
+## Tecnologia
+
+Site estático gerado com Astro 6 (SSG). Conteúdo em MDX. Mapa interativo com Leaflet.

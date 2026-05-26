@@ -4,6 +4,7 @@ import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import partytown from "@astrojs/partytown";
 import tailwindcss from "@tailwindcss/vite";
+import icon from "astro-icon";
 
 // https://astro.build/config
 export default defineConfig({
@@ -11,6 +12,7 @@ export default defineConfig({
   integrations: [
     mdx(),
     sitemap(),
+    icon(),
     // Partytown executa scripts de analytics numa web worker,
     // fora do main thread — melhora o desempenho da página.
     partytown({
