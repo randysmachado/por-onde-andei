@@ -160,18 +160,15 @@ const nextSlug = next?.id.replace("/index", "");
             <a href={`/${slugify(category)}/`} class="tag">{category}</a>
           </div>
         </div>
-        <div class="meta-item">
-          <div class="meta-lbl">&nbsp;</div>
-          <a
-            href="#comments"
-            class="comments-link"
-            id="comments-count-link"
-            data-slug={slug}
-          >
-            <Icon name="message-circle" />
-            <span id="comments-count-text">Comentários</span>
-          </a>
-        </div>
+        <a
+          href="#comments"
+          class="comments-link"
+          id="comments-count-link"
+          data-slug={slug}
+        >
+          <Icon name="message-circle" />
+          <span id="comments-count-text">Comentários</span>
+        </a>
       </div>
     </section>
 
@@ -335,6 +332,7 @@ const nextSlug = next?.id.replace("/index", "");
     margin: 0 auto;
     padding: 20px 32px;
     display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 24px;
   }
