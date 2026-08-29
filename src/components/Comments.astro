@@ -10,7 +10,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 <section class="comments" id="comments" data-slug={slug}>
   <div class="comments-inner">
     <div class="comments-heading">
-      <span class="comments-eyebrow">Fica sua marca</span>
+      <span class="comments-eyebrow">Compartilhe conosco</span>
       <h2 class="comments-title">Deixe seu comentário</h2>
       <p class="comments-subtitle">
         Já esteve por aqui ou tem alguma dúvida sobre o lugar? Conta pra gente.
@@ -171,7 +171,9 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     const payload = { slug, ...parsed.data, turnstileToken };
 
     const submitBtn = form.querySelector("button[type=submit]") as HTMLButtonElement;
+    const submitBtnDefaultText = submitBtn.textContent ?? "Enviar comentário";
     submitBtn.disabled = true;
+    submitBtn.textContent = "Publicando seu comentário, aguarde…";
 
     try {
       const res = await fetch("/api/comments", {
@@ -200,6 +202,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       errorEl.hidden = false;
     } finally {
       submitBtn.disabled = false;
+      submitBtn.textContent = submitBtnDefaultText;
     }
   });
 
