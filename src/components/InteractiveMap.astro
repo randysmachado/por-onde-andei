@@ -171,7 +171,11 @@ const travelsJson = JSON.stringify(mapData);
     const m = markers[id];
     if (!m) return;
     map.flyTo([t.lat, t.lng], 8, { duration: 1.1 });
-    if (open) setTimeout(() => m.openPopup(), 750);
+    // Abre o popup só quando o flyTo realmente terminar (evento
+    // "moveend"), não num tempo fixo chutado — abrir no meio da
+    // animação faz o auto-pan do Leaflet calcular o ajuste em cima de
+    // uma posição intermediária, descasando do destino final do voo.
+    if (open) map.once("moveend", () => m.openPopup());
     document
       .querySelector<HTMLElement>(`.card[data-id="${id}"]`)
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
