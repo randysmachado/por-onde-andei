@@ -2,6 +2,7 @@
 import { getCollection, render } from "astro:content";
 import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
+import { Icon } from "astro-icon/components";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Gallery from "../../components/Gallery.astro";
 import Comments from "../../components/Comments.astro";
@@ -159,6 +160,18 @@ const nextSlug = next?.id.replace("/index", "");
             <a href={`/${slugify(category)}/`} class="tag">{category}</a>
           </div>
         </div>
+        <div class="meta-item">
+          <div class="meta-lbl">&nbsp;</div>
+          <a
+            href="#comments"
+            class="comments-link"
+            id="comments-count-link"
+            data-slug={slug}
+          >
+            <Icon name="message-circle" />
+            <span id="comments-count-text">Comentários</span>
+          </a>
+        </div>
       </div>
     </section>
 
@@ -205,6 +218,29 @@ const nextSlug = next?.id.replace("/index", "");
     </nav>
   </main>
 </BaseLayout>
+
+<script>
+  const link = document.getElementById("comments-count-link") as HTMLAnchorElement | null;
+  const countText = document.getElementById("comments-count-text");
+  const slug = link?.dataset.slug;
+
+  if (link && countText && slug) {
+    fetch(`/api/comments?slug=${encodeURIComponent(slug)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const total = Array.isArray(data.comments) ? data.comments.length : 0;
+        countText.textContent =
+          total === 0
+            ? "Comentários"
+            : total === 1
+              ? "1 comentário"
+              : `${total} comentários`;
+      })
+      .catch(() => {
+        // mantém o texto padrão "Comentários" em caso de falha
+      });
+  }
+</script>
 
 <style>
   /* ── Hero ── */
@@ -310,6 +346,26 @@ const nextSlug = next?.id.replace("/index", "");
     line-height: 1.1;
     color: var(--ink);
     letter-spacing: 0.005em;
+  }
+  .comments-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--ui);
+    font-size: 15px;
+    font-weight: 700;
+    transition: color 0.15s;
+  }
+  .comments-link:hover {
+    color: var(--accent);
+  }
+  .comments-link svg {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
   }
   .meta-tags {
     display: flex;
