@@ -4,6 +4,7 @@ import type { ImageMetadata } from "astro";
 import { Image } from "astro:assets";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Gallery from "../../components/Gallery.astro";
+import Comments from "../../components/Comments.astro";
 
 const slugify = (str: string) =>
   str.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
@@ -184,6 +185,8 @@ const nextSlug = next?.id.replace("/index", "");
     <div class="gallery-wrap">
       <Gallery images={galleryImages} title={title} />
     </div>
+
+    <Comments slug={slug} />
 
     <!-- ── Post nav ── -->
     <nav class="post-nav">
