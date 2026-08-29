@@ -20,6 +20,7 @@
     "astro": "^6.3.6",
     "astro-icon": "^1.1.5",
     "astro-seo": "^1.1.0",
+    "googleapis": "^176.0.0",
     "leaflet": "^1.9.4",
     "tailwindcss": "^4.3.0"
   },

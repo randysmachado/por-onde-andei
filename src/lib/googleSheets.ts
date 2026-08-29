@@ -1,0 +1,96 @@
+import { google } from "googleapis";
+
+export type CommentRow = {
+  date: string;
+  name: string;
+  email: string;
+  comment: string;
+};
+
+const HEADER = ["data", "nome", "email", "comentário"];
+
+function getAuth() {
+  const email = import.meta.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = import.meta.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(
+    /\\n/g,
+    "\n",
+  );
+  if (!email || !privateKey) {
+    throw new Error("Credenciais da Service Account do Google não configuradas.");
+  }
+  return new google.auth.JWT({
+    email,
+    key: privateKey,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+}
+
+function getSheetId(): string {
+  const id = import.meta.env.GOOGLE_SHEET_ID;
+  if (!id) throw new Error("GOOGLE_SHEET_ID não configurado.");
+  return id;
+}
+
+async function getSheetsClient() {
+  const auth = getAuth();
+  return google.sheets({ version: "v4", auth });
+}
+
+async function sheetExists(slug: string): Promise<boolean> {
+  const sheets = await getSheetsClient();
+  const spreadsheet = await sheets.spreadsheets.get({
+    spreadsheetId: getSheetId(),
+  });
+  return (
+    spreadsheet.data.sheets?.some((s) => s.properties?.title === slug) ?? false
+  );
+}
+
+export async function ensureSheetExists(slug: string): Promise<void> {
+  if (await sheetExists(slug)) return;
+
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: getSheetId(),
+    requestBody: {
+      requests: [{ addSheet: { properties: { title: slug } } }],
+    },
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: getSheetId(),
+    range: `${slug}!A1:D1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [HEADER] },
+  });
+}
+
+export async function appendComment(slug: string, row: CommentRow): Promise<void> {
+  await ensureSheetExists(slug);
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: getSheetId(),
+    range: `${slug}!A:D`,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: [[row.date, row.name, row.email, row.comment]],
+    },
+  });
+}
+
+export async function readComments(slug: string): Promise<CommentRow[]> {
+  if (!(await sheetExists(slug))) return [];
+
+  const sheets = await getSheetsClient();
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: getSheetId(),
+    range: `${slug}!A2:D`,
+  });
+  const rows = result.data.values ?? [];
+  return rows.map(([date, name, email, comment]) => ({
+    date: date ?? "",
+    name: name ?? "",
+    email: email ?? "",
+    comment: comment ?? "",
+  }));
+}
