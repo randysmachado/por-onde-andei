@@ -553,7 +553,23 @@ const nextSlug = next?.id.replace("/index", "");
   /* ── Responsive ── */
   @media (max-width: 720px) {
     .meta-inner {
+      display: grid;
       grid-template-columns: repeat(2, 1fr);
+      align-items: start;
+      row-gap: 20px;
+      column-gap: 16px;
+    }
+    .comments-link {
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+    .comments-link svg {
+      width: 22px;
+      height: 22px;
+    }
+    .meta-val {
+      font-size: 18px;
     }
     .hero-text {
       padding: 0 20px 32px;
