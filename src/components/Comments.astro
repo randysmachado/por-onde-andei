@@ -17,6 +17,18 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       </p>
     </div>
 
+    <div class="comments-toolbar" id="comments-toolbar" hidden>
+      <span class="comments-count-label" id="comments-count-label"></span>
+      <div class="comments-sort" role="group" aria-label="Ordenar comentários">
+        <button type="button" class="sort-btn" id="sort-newest" data-order="newest">
+          Mais recentes
+        </button>
+        <button type="button" class="sort-btn" id="sort-oldest" data-order="oldest">
+          Mais antigos
+        </button>
+      </div>
+    </div>
+
     <ul class="comments-list" id="comments-list">
       <li class="comments-loading">Carregando comentários…</li>
     </ul>
@@ -59,11 +71,22 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 
   type ApiComment = { name: string; comment: string; date: string };
 
+  type SortOrder = "newest" | "oldest";
+
   const section = document.getElementById("comments") as HTMLElement;
   const slug = section.dataset.slug!;
   const list = document.getElementById("comments-list") as HTMLUListElement;
   const form = document.getElementById("comments-form") as HTMLFormElement;
   const errorEl = document.getElementById("comments-error") as HTMLParagraphElement;
+  const toolbar = document.getElementById("comments-toolbar") as HTMLDivElement;
+  const countLabel = document.getElementById("comments-count-label") as HTMLSpanElement;
+  const sortButtons = {
+    newest: document.getElementById("sort-newest") as HTMLButtonElement,
+    oldest: document.getElementById("sort-oldest") as HTMLButtonElement,
+  };
+
+  let loadedComments: ApiComment[] = [];
+  let currentSort: SortOrder = "newest";
 
   const fieldErrorEls = {
     name: document.getElementById("err-name") as HTMLParagraphElement,
@@ -88,16 +111,37 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     }
   }
 
+  function sortedComments(comments: ApiComment[], order: SortOrder): ApiComment[] {
+    const sorted = [...comments].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+    return order === "newest" ? sorted.reverse() : sorted;
+  }
+
+  function updateSortButtons() {
+    for (const [order, btn] of Object.entries(sortButtons)) {
+      btn.classList.toggle("active", order === currentSort);
+    }
+  }
+
   function renderComments(comments: ApiComment[]) {
     list.textContent = "";
+
     if (comments.length === 0) {
+      toolbar.hidden = true;
       const li = document.createElement("li");
       li.className = "comments-empty";
       li.textContent = "Seja o primeiro a comentar.";
       list.appendChild(li);
       return;
     }
-    for (const c of comments) {
+
+    toolbar.hidden = false;
+    countLabel.textContent =
+      comments.length === 1 ? "1 comentário" : `${comments.length} comentários`;
+    updateSortButtons();
+
+    for (const c of sortedComments(comments, currentSort)) {
       const li = document.createElement("li");
       li.className = "comment-item";
 
@@ -138,14 +182,23 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     try {
       const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
       const data = await res.json();
-      renderComments(data.comments ?? []);
+      loadedComments = data.comments ?? [];
+      renderComments(loadedComments);
     } catch {
+      toolbar.hidden = true;
       list.textContent = "";
       const li = document.createElement("li");
       li.className = "comments-empty";
       li.textContent = "Não foi possível carregar os comentários.";
       list.appendChild(li);
     }
+  }
+
+  for (const [order, btn] of Object.entries(sortButtons)) {
+    btn.addEventListener("click", () => {
+      currentSort = order as SortOrder;
+      renderComments(loadedComments);
+    });
   }
 
   form.addEventListener("submit", async (e) => {
@@ -263,6 +316,53 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     line-height: 1.6;
     color: var(--ink-2);
     margin: 0;
+  }
+  .comments-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 16px;
+    flex-wrap: wrap;
+  }
+  .comments-count-label {
+    font-family: var(--ui);
+    font-size: 12px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+  }
+  .comments-sort {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .sort-btn {
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--ink-3);
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+  .sort-btn:hover {
+    color: var(--ink);
+  }
+  .sort-btn.active {
+    background: var(--accent);
+    color: #1a1411;
   }
   .comments-list {
     list-style: none;
