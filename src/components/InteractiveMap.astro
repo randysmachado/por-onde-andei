@@ -155,6 +155,49 @@ const travelsJson = JSON.stringify(mapData);
 
   const markers: Record<string, L.Marker> = {};
 
+  // ── Popup mobile (elemento próprio, fora da árvore do Leaflet) ──
+  // No mobile o popup nativo do Leaflet fica difícil de centralizar de
+  // forma confiável (é filho de panes que se movem/transformam junto
+  // com o pan do mapa) — em vez disso usamos um card fixo próprio,
+  // criado direto no <body>, reaproveitando o mesmo HTML de buildPopup.
+  const isMobile = () => window.matchMedia("(max-width: 880px)").matches;
+
+  const mobilePopupEl = document.createElement("div");
+  mobilePopupEl.id = "map-mobile-popup";
+  document.body.appendChild(mobilePopupEl);
+
+  function closeMobilePopup() {
+    mobilePopupEl.classList.remove("is-open");
+  }
+
+  function openMobilePopup(t: TravelData) {
+    mobilePopupEl.innerHTML = "";
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "map-mobile-popup-close";
+    closeBtn.setAttribute("aria-label", "Fechar");
+    closeBtn.textContent = "×";
+    closeBtn.addEventListener("click", closeMobilePopup);
+    mobilePopupEl.appendChild(closeBtn);
+    mobilePopupEl.insertAdjacentHTML("beforeend", buildPopup(t));
+    mobilePopupEl.classList.add("is-open");
+  }
+
+  function openDesktopPopup(t: TravelData, marker: L.Marker) {
+    L.popup({ maxWidth: 300, closeButton: true, autoPanPadding: [16, 16] })
+      .setLatLng(marker.getLatLng())
+      .setContent(buildPopup(t))
+      .openOn(map);
+  }
+
+  function openPopupFor(t: TravelData, marker: L.Marker) {
+    if (isMobile()) {
+      openMobilePopup(t);
+    } else {
+      openDesktopPopup(t, marker);
+    }
+  }
+
   function setActive(id: string) {
     document.querySelectorAll<HTMLElement>(".card").forEach((c) => {
       c.classList.toggle("active", c.dataset.id === id);
@@ -171,7 +214,7 @@ const travelsJson = JSON.stringify(mapData);
     const m = markers[id];
     if (!m) return;
     map.flyTo([t.lat, t.lng], 8, { duration: 1.1 });
-    if (open) setTimeout(() => m.openPopup(), 750);
+    if (open) setTimeout(() => openPopupFor(t, m), 750);
     document
       .querySelector<HTMLElement>(`.card[data-id="${id}"]`)
       ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -180,12 +223,10 @@ const travelsJson = JSON.stringify(mapData);
   // ── Add markers ────────────────────────────────────────────
   travels.forEach((t, i) => {
     const marker = L.marker([t.lat, t.lng], { icon: buildPin(t, i) });
-    marker.bindPopup(buildPopup(t), {
-      maxWidth: 300,
-      closeButton: true,
-      autoPanPadding: [16, 16],
+    marker.on("click", () => {
+      setActive(t.id);
+      openPopupFor(t, marker);
     });
-    marker.on("click", () => setActive(t.id));
     marker.addTo(map);
     markers[t.id] = marker;
 
@@ -211,6 +252,9 @@ const travelsJson = JSON.stringify(mapData);
       if (id) focusTravel(id, true);
     });
   });
+
+  // Fecha o popup mobile ao tocar/clicar no mapa fora de um pino
+  map.on("click", closeMobilePopup);
 
   // ── Hint ────────────────────────────────────────────────────
   const hint = document.getElementById("map-hint");
