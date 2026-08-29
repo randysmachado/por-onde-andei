@@ -67,11 +67,22 @@ export async function ensureSheetExists(slug: string): Promise<void> {
 export async function appendComment(slug: string, row: CommentRow): Promise<void> {
   await ensureSheetExists(slug);
   const sheets = await getSheetsClient();
-  await sheets.spreadsheets.values.append({
+
+  // Escreve numa linha específica (calculada a partir das linhas já
+  // preenchidas) em vez de usar values.append: o append deixa a API do
+  // Sheets "adivinhar" onde a tabela termina, e para uma aba recém-criada
+  // isso pode ler o cabeçalho antes dele terminar de ser gravado — fazendo
+  // o primeiro comentário cair na linha 1 e o cabeçalho nunca aparecer.
+  const existing = await sheets.spreadsheets.values.get({
     spreadsheetId: getSheetId(),
-    range: `${slug}!A:D`,
+    range: `${slug}!A:A`,
+  });
+  const nextRow = (existing.data.values?.length ?? 1) + 1;
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: getSheetId(),
+    range: `${slug}!A${nextRow}:D${nextRow}`,
     valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
     requestBody: {
       values: [[row.date, row.name, row.email, row.comment]],
     },
