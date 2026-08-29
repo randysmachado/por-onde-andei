@@ -22,7 +22,8 @@
     "astro-seo": "^1.1.0",
     "googleapis": "^176.0.0",
     "leaflet": "^1.9.4",
-    "tailwindcss": "^4.3.0"
+    "tailwindcss": "^4.3.0",
+    "zod": "^4.5.2"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.21"

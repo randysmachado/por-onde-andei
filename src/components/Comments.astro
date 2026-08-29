@@ -8,36 +8,55 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
 <section class="comments" id="comments" data-slug={slug}>
-  <h2 class="comments-title">Comentários</h2>
+  <div class="comments-inner">
+    <div class="comments-heading">
+      <span class="comments-eyebrow">Fica sua marca</span>
+      <h2 class="comments-title">Deixe seu comentário</h2>
+      <p class="comments-subtitle">
+        Já esteve por aqui ou tem alguma dúvida sobre o lugar? Conta pra gente.
+      </p>
+    </div>
 
-  <ul class="comments-list" id="comments-list">
-    <li class="comments-loading">Carregando comentários…</li>
-  </ul>
+    <ul class="comments-list" id="comments-list">
+      <li class="comments-loading">Carregando comentários…</li>
+    </ul>
 
-  <form class="comments-form" id="comments-form">
-    <div class="form-row">
-      <label for="c-name">Nome</label>
-      <input id="c-name" name="name" type="text" required maxlength="80" />
-    </div>
-    <div class="form-row">
-      <label for="c-email">E-mail (não exibido publicamente)</label>
-      <input id="c-email" name="email" type="email" required />
-    </div>
-    <div class="form-row">
-      <label for="c-comment">Comentário</label>
-      <textarea id="c-comment" name="comment" required maxlength="2000" rows="4"
-      ></textarea>
-    </div>
-    <div class="cf-turnstile" data-sitekey={siteKey}></div>
-    <button type="submit">Enviar comentário</button>
-    <p class="comments-error" id="comments-error" hidden></p>
-  </form>
+    <form class="comments-form" id="comments-form" novalidate>
+      <div class="form-row">
+        <label for="c-name">Nome</label>
+        <input id="c-name" name="name" type="text" maxlength="80" />
+        <p class="field-error" id="err-name" hidden></p>
+      </div>
+      <div class="form-row">
+        <label for="c-email">E-mail (não exibido publicamente)</label>
+        <input id="c-email" name="email" type="email" />
+        <p class="field-error" id="err-email" hidden></p>
+      </div>
+      <div class="form-row">
+        <label for="c-comment">Comentário</label>
+        <textarea
+          id="c-comment"
+          name="comment"
+          maxlength="2000"
+          rows="4"
+          placeholder="Escreva aqui o que achou, uma dica ou uma pergunta…"
+        ></textarea>
+        <p class="field-error" id="err-comment" hidden></p>
+      </div>
+      <div class="cf-turnstile" data-sitekey={siteKey}></div>
+      <button type="submit">Enviar comentário</button>
+      <p class="comments-error" id="comments-error" hidden></p>
+    </form>
+  </div>
 </section>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer
 ></script>
 
 <script>
+  import { z } from "zod";
+  import { commentSchema } from "../lib/commentSchema";
+
   type ApiComment = { name: string; comment: string; date: string };
 
   const section = document.getElementById("comments") as HTMLElement;
@@ -45,6 +64,29 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   const list = document.getElementById("comments-list") as HTMLUListElement;
   const form = document.getElementById("comments-form") as HTMLFormElement;
   const errorEl = document.getElementById("comments-error") as HTMLParagraphElement;
+
+  const fieldErrorEls = {
+    name: document.getElementById("err-name") as HTMLParagraphElement,
+    email: document.getElementById("err-email") as HTMLParagraphElement,
+    comment: document.getElementById("err-comment") as HTMLParagraphElement,
+  };
+
+  function clearFieldErrors() {
+    for (const el of Object.values(fieldErrorEls)) {
+      el.hidden = true;
+      el.textContent = "";
+    }
+  }
+
+  function showFieldErrors(fieldErrors: Partial<Record<string, string[]>>) {
+    for (const [field, messages] of Object.entries(fieldErrors)) {
+      const el = fieldErrorEls[field as keyof typeof fieldErrorEls];
+      if (el && messages?.[0]) {
+        el.textContent = messages[0];
+        el.hidden = false;
+      }
+    }
+  }
 
   function renderComments(comments: ApiComment[]) {
     list.textContent = "";
@@ -62,6 +104,13 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       const header = document.createElement("div");
       header.className = "comment-header";
 
+      const avatar = document.createElement("div");
+      avatar.className = "comment-avatar";
+      avatar.textContent = c.name.trim().charAt(0).toUpperCase() || "?";
+
+      const meta = document.createElement("div");
+      meta.className = "comment-meta";
+
       const name = document.createElement("span");
       name.className = "comment-name";
       name.textContent = c.name;
@@ -70,8 +119,10 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       date.className = "comment-date";
       date.textContent = new Date(c.date).toLocaleDateString("pt-BR");
 
-      header.appendChild(name);
-      header.appendChild(date);
+      meta.appendChild(name);
+      meta.appendChild(date);
+      header.appendChild(avatar);
+      header.appendChild(meta);
 
       const body = document.createElement("p");
       body.className = "comment-body";
@@ -100,17 +151,24 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorEl.hidden = true;
+    clearFieldErrors();
 
     const formData = new FormData(form);
     const turnstileToken = formData.get("cf-turnstile-response") as string | null;
 
-    const payload = {
-      slug,
+    const rawInput = {
       name: formData.get("name"),
       email: formData.get("email"),
       comment: formData.get("comment"),
-      turnstileToken,
     };
+
+    const parsed = commentSchema.safeParse(rawInput);
+    if (!parsed.success) {
+      showFieldErrors(z.flattenError(parsed.error).fieldErrors);
+      return;
+    }
+
+    const payload = { slug, ...parsed.data, turnstileToken };
 
     const submitBtn = form.querySelector("button[type=submit]") as HTMLButtonElement;
     submitBtn.disabled = true;
@@ -124,8 +182,12 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       const data = await res.json();
 
       if (!res.ok) {
-        errorEl.textContent = data.error ?? "Não foi possível enviar seu comentário.";
-        errorEl.hidden = false;
+        if (data.fieldErrors) {
+          showFieldErrors(data.fieldErrors);
+        } else {
+          errorEl.textContent = data.error ?? "Não foi possível enviar seu comentário.";
+          errorEl.hidden = false;
+        }
         return;
       }
 
@@ -144,28 +206,68 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   loadComments();
 </script>
 
-<style>
+<style is:global>
+  /* Estas classes são aplicadas a elementos criados via document.createElement
+     no <script> do componente — o escopo automático do Astro só cobre
+     elementos escritos no template, por isso o bloco inteiro é global.
+     Nomes prefixados com "comment(s)-" evitam colisão com o resto do site. */
   .comments {
-    max-width: 720px;
-    margin: 48px auto 0;
-    padding: 32px 32px 0;
-    border-top: 1px solid var(--line);
+    max-width: 900px;
+    margin: 56px auto 0;
+    padding: 0 32px 64px;
+  }
+  .comments-inner {
+    background: linear-gradient(
+      165deg,
+      var(--panel) 0%,
+      var(--panel-2) 100%
+    );
+    border: 1px solid var(--line-2);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  }
+  .comments-heading {
+    max-width: 560px;
+    margin: 0 0 32px;
+  }
+  .comments-eyebrow {
+    display: inline-block;
+    font-family: var(--ui);
+    font-size: 11px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(230, 134, 58, 0.3);
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
   }
   .comments-title {
     font-family: var(--display);
-    font-size: 32px;
+    font-size: 40px;
     letter-spacing: 0.01em;
     color: var(--ink);
-    margin: 0 0 24px;
+    margin: 0 0 10px;
     font-weight: 400;
+    line-height: 1.05;
+  }
+  .comments-subtitle {
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    margin: 0;
   }
   .comments-list {
     list-style: none;
-    margin: 0 0 32px;
+    margin: 0 0 40px;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
   }
   .comments-loading,
   .comments-empty {
@@ -174,21 +276,40 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     color: var(--ink-3);
   }
   .comment-item {
-    background: var(--panel);
+    background: var(--bg);
     border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 14px 16px;
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 18px;
   }
   .comment-header {
     display: flex;
-    justify-content: space-between;
+    align-items: flex-start;
     gap: 12px;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+  }
+  .comment-avatar {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: grid;
+    place-items: center;
+    font-family: var(--ui);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .comment-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
   .comment-name {
     font-family: var(--ui);
     font-weight: 700;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--ink);
   }
   .comment-date {
@@ -208,7 +329,6 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding-bottom: 48px;
   }
   .form-row {
     display: flex;
@@ -228,7 +348,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     font-family: var(--body);
     font-size: 14px;
     color: var(--ink);
-    background: var(--panel);
+    background: var(--bg);
     border: 1px solid var(--line-2);
     border-radius: 8px;
     padding: 10px 12px;
@@ -238,6 +358,12 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   .form-row textarea:focus {
     outline: none;
     border-color: var(--accent);
+  }
+  .field-error {
+    font-family: var(--ui);
+    font-size: 12px;
+    color: #e6863a;
+    margin: 0;
   }
   .comments-form button[type="submit"] {
     align-self: flex-start;
@@ -266,5 +392,18 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     font-family: var(--ui);
     font-size: 13px;
     margin: 0;
+  }
+
+  @media (max-width: 640px) {
+    .comments {
+      padding: 0 20px 48px;
+    }
+    .comments-inner {
+      padding: 24px;
+      border-radius: 16px;
+    }
+    .comments-title {
+      font-size: 30px;
+    }
   }
 </style>

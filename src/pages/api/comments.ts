@@ -1,12 +1,10 @@
 import type { APIRoute } from "astro";
+import { z } from "zod";
 import { appendComment, readComments } from "../../lib/googleSheets";
 import { verifyTurnstileToken } from "../../lib/turnstile";
+import { commentSchema } from "../../lib/commentSchema";
 
 export const prerender = false;
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const MAX_NAME_LEN = 80;
-const MAX_COMMENT_LEN = 2000;
 
 export const GET: APIRoute = async ({ url }) => {
   const slug = url.searchParams.get("slug");
@@ -41,24 +39,27 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   }
 
-  const { slug, name, email, comment, turnstileToken } = body;
+  const { slug, turnstileToken } = body;
 
-  if (!slug || !name?.trim() || !comment?.trim() || !email?.trim()) {
-    return new Response(
-      JSON.stringify({ error: "nome, email e comentário são obrigatórios" }),
-      { status: 400 },
-    );
-  }
-  if (!EMAIL_RE.test(email)) {
-    return new Response(JSON.stringify({ error: "email inválido" }), {
+  if (!slug) {
+    return new Response(JSON.stringify({ error: "slug é obrigatório" }), {
       status: 400,
     });
   }
-  if (name.length > MAX_NAME_LEN || comment.length > MAX_COMMENT_LEN) {
-    return new Response(JSON.stringify({ error: "campo excede o tamanho máximo" }), {
+
+  const parsed = commentSchema.safeParse({
+    name: body.name,
+    email: body.email,
+    comment: body.comment,
+  });
+  if (!parsed.success) {
+    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+    return new Response(JSON.stringify({ error: "dados inválidos", fieldErrors }), {
       status: 400,
     });
   }
+  const { name, email, comment } = parsed.data;
+
   if (!turnstileToken) {
     return new Response(JSON.stringify({ error: "captcha ausente" }), {
       status: 403,
@@ -82,12 +83,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   const date = new Date().toISOString();
   try {
-    await appendComment(slug, {
-      date,
-      name: name.trim(),
-      email: email.trim(),
-      comment: comment.trim(),
-    });
+    await appendComment(slug, { date, name, email, comment });
   } catch {
     return new Response(
       JSON.stringify({ error: "não foi possível enviar seu comentário, tente novamente" }),
@@ -95,8 +91,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     );
   }
 
-  return new Response(
-    JSON.stringify({ comment: { name: name.trim(), comment: comment.trim(), date } }),
-    { status: 201 },
-  );
+  return new Response(JSON.stringify({ comment: { name, comment, date } }), {
+    status: 201,
+  });
 };
