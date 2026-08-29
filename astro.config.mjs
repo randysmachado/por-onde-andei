@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import vercel from "@astrojs/vercel";
 import mdx from "@astrojs/mdx";
 import sitemap from "@astrojs/sitemap";
 import partytown from "@astrojs/partytown";
@@ -9,6 +10,11 @@ import icon from "astro-icon";
 // https://astro.build/config
 export default defineConfig({
   site: "https://porondeandei.randys.dev",
+  // output continua 'static' (padrão) — desde o Astro v5 ele já suporta
+  // rotas server-rendered via `export const prerender = false` por rota
+  // (o antigo output: 'hybrid' foi mesclado no 'static'). Só a rota
+  // src/pages/api/comments.ts roda sob demanda.
+  adapter: vercel(),
   integrations: [
     mdx(),
     sitemap(),
