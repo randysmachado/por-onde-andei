@@ -180,7 +180,11 @@ const travelsJson = JSON.stringify(mapData);
   // ── Add markers ────────────────────────────────────────────
   travels.forEach((t, i) => {
     const marker = L.marker([t.lat, t.lng], { icon: buildPin(t, i) });
-    marker.bindPopup(buildPopup(t), { maxWidth: 300, closeButton: true });
+    marker.bindPopup(buildPopup(t), {
+      maxWidth: 300,
+      closeButton: true,
+      offset: [0, 10], // ajuste fino: valor positivo desce o popup
+    });
     marker.on("click", () => setActive(t.id));
     marker.addTo(map);
     markers[t.id] = marker;
