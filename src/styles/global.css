@@ -206,6 +206,46 @@ button {
   padding: 8px !important;
 }
 
+/* No mobile (sidebar empilhada acima do mapa), o popup deixa de ficar
+   ancorado no pino — vira um cartão fixo, centralizado no topo da área
+   do mapa, com posição relativa a #travel-map (não à viewport), pra
+   não precisar saber a altura da sidebar. */
+@media (max-width: 880px) {
+  .leaflet-popup {
+    position: absolute !important;
+    left: 50% !important;
+    top: 16px !important;
+    transform: translateX(-50%) !important;
+    margin: 0 !important;
+    width: calc(100% - 32px) !important;
+    max-width: 420px !important;
+  }
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-content {
+    width: 100% !important;
+  }
+  .leaflet-popup-tip-container {
+    display: none !important;
+  }
+  .leaflet-popup-close-button {
+    top: 10px !important;
+    right: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 18, 16, 0.55) !important;
+    border-radius: 50%;
+    font-size: 18px !important;
+  }
+  .pop-cover,
+  .pop-cover-empty,
+  .pop-cover img {
+    height: 200px !important;
+  }
+}
+
 .pop-cover {
   width: 100%;
   height: 140px;
