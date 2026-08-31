@@ -29,9 +29,7 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       </div>
     </div>
 
-    <ul class="comments-list" id="comments-list">
-      <li class="comments-loading">Carregando comentários…</li>
-    </ul>
+    <ul class="comments-list" id="comments-list"></ul>
 
     <form class="comments-form" id="comments-form" novalidate>
       <div class="form-row">
@@ -178,7 +176,28 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     }
   }
 
+  function renderSkeleton() {
+    list.textContent = "";
+    for (let i = 0; i < 3; i++) {
+      const li = document.createElement("li");
+      li.className = "comment-item comment-skeleton";
+      li.innerHTML = `
+        <div class="comment-header">
+          <div class="comment-avatar skeleton-block"></div>
+          <div class="comment-meta">
+            <span class="skeleton-block skeleton-line" style="width:120px;height:14px;"></span>
+            <span class="skeleton-block skeleton-line" style="width:70px;height:11px;"></span>
+          </div>
+        </div>
+        <div class="skeleton-block skeleton-line" style="width:100%;height:12px;margin-top:10px;"></div>
+        <div class="skeleton-block skeleton-line" style="width:80%;height:12px;margin-top:8px;"></div>
+      `;
+      list.appendChild(li);
+    }
+  }
+
   async function loadComments() {
+    renderSkeleton();
     try {
       const res = await fetch(`/api/comments?slug=${encodeURIComponent(slug)}`);
       const data = await res.json();
@@ -384,6 +403,32 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     border-left: 3px solid var(--accent);
     border-radius: 12px;
     padding: 18px 20px;
+  }
+  .skeleton-block {
+    display: inline-block;
+    border-radius: 6px;
+    background: linear-gradient(
+      90deg,
+      var(--panel-2) 25%,
+      var(--line-2) 50%,
+      var(--panel-2) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+  .comment-skeleton .comment-avatar.skeleton-block {
+    background: var(--panel-2);
+  }
+  .skeleton-line {
+    border-radius: 4px;
+  }
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
   .comment-header {
     display: flex;
