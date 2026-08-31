@@ -1,13 +1,17 @@
 import { google } from "googleapis";
+import { randomUUID } from "node:crypto";
 
 export type CommentRow = {
-  date: string;
+  id: string;
   name: string;
   email: string;
   comment: string;
+  parentId: string;
+  isAuthor: boolean;
+  date: string;
 };
 
-const HEADER = ["data", "nome", "email", "comentário"];
+const HEADER = ["id", "name", "email", "comment", "parentId", "isAuthor", "date"];
 
 function getAuth() {
   const email = import.meta.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -58,13 +62,16 @@ export async function ensureSheetExists(slug: string): Promise<void> {
   });
   await sheets.spreadsheets.values.update({
     spreadsheetId: getSheetId(),
-    range: `${slug}!A1:D1`,
+    range: `${slug}!A1:G1`,
     valueInputOption: "RAW",
     requestBody: { values: [HEADER] },
   });
 }
 
-export async function appendComment(slug: string, row: CommentRow): Promise<void> {
+export async function appendComment(
+  slug: string,
+  row: Omit<CommentRow, "id">,
+): Promise<CommentRow> {
   await ensureSheetExists(slug);
   const sheets = await getSheetsClient();
 
@@ -79,14 +86,19 @@ export async function appendComment(slug: string, row: CommentRow): Promise<void
   });
   const nextRow = (existing.data.values?.length ?? 1) + 1;
 
+  const id = randomUUID();
   await sheets.spreadsheets.values.update({
     spreadsheetId: getSheetId(),
-    range: `${slug}!A${nextRow}:D${nextRow}`,
+    range: `${slug}!A${nextRow}:G${nextRow}`,
     valueInputOption: "RAW",
     requestBody: {
-      values: [[row.date, row.name, row.email, row.comment]],
+      values: [
+        [id, row.name, row.email, row.comment, row.parentId, row.isAuthor ? "true" : "", row.date],
+      ],
     },
   });
+
+  return { id, ...row };
 }
 
 export async function readComments(slug: string): Promise<CommentRow[]> {
@@ -95,13 +107,16 @@ export async function readComments(slug: string): Promise<CommentRow[]> {
   const sheets = await getSheetsClient();
   const result = await sheets.spreadsheets.values.get({
     spreadsheetId: getSheetId(),
-    range: `${slug}!A2:D`,
+    range: `${slug}!A2:G`,
   });
   const rows = result.data.values ?? [];
-  return rows.map(([date, name, email, comment]) => ({
-    date: date ?? "",
+  return rows.map(([id, name, email, comment, parentId, isAuthor, date]) => ({
+    id: id ?? "",
     name: name ?? "",
     email: email ?? "",
     comment: comment ?? "",
+    parentId: parentId ?? "",
+    isAuthor: isAuthor === "true",
+    date: date ?? "",
   }));
 }
