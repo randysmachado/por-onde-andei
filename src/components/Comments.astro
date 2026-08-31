@@ -790,6 +790,26 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     font-size: 13px;
     margin: 0;
   }
+  .comment-author {
+    background: linear-gradient(165deg, var(--accent-soft) 0%, var(--bg) 60%);
+    border-color: rgba(230, 134, 58, 0.35);
+    border-left-color: var(--accent);
+  }
+  .comment-author-badge {
+    display: inline-block;
+    margin-left: 8px;
+    font-family: var(--ui);
+    font-size: 10px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(230, 134, 58, 0.3);
+    padding: 2px 8px;
+    border-radius: 999px;
+    vertical-align: middle;
+  }
 
   @media (max-width: 640px) {
     .comments {
