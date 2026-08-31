@@ -30,8 +30,16 @@ export async function getStaticPaths() {
 const { entry, idx, total, prev, next } = Astro.props;
 const { Content } = await render(entry);
 
-const { title, description, date, updatedDate, cover, location, tags, category } =
-  entry.data;
+const {
+  title,
+  description,
+  date,
+  updatedDate,
+  cover,
+  location,
+  tags,
+  category,
+} = entry.data;
 const slug = entry.id.replace("/index", "");
 
 const allImages = import.meta.glob<{ default: ImageMetadata }>(
@@ -200,24 +208,30 @@ const nextSlug = next?.id.replace("/index", "");
 
     <!-- ── Post nav ── -->
     <nav class="post-nav">
-      {prev && (
-        <a class="nav-card prev" href={`/local/${prevSlug}`}>
-          <span class="nav-lbl">← anterior</span>
-          <span class="nav-title">{prev.data.title}</span>
-        </a>
-      )}
-      {next && (
-        <a class="nav-card next" href={`/local/${nextSlug}`}>
-          <span class="nav-lbl">próximo →</span>
-          <span class="nav-title">{next.data.title}</span>
-        </a>
-      )}
+      {
+        prev && (
+          <a class="nav-card prev" href={`/local/${prevSlug}`}>
+            <span class="nav-lbl">← anterior</span>
+            <span class="nav-title">{prev.data.title}</span>
+          </a>
+        )
+      }
+      {
+        next && (
+          <a class="nav-card next" href={`/local/${nextSlug}`}>
+            <span class="nav-lbl">próximo →</span>
+            <span class="nav-title">{next.data.title}</span>
+          </a>
+        )
+      }
     </nav>
   </main>
 </BaseLayout>
 
 <script>
-  const link = document.getElementById("comments-count-link") as HTMLAnchorElement | null;
+  const link = document.getElementById(
+    "comments-count-link",
+  ) as HTMLAnchorElement | null;
   const countText = document.getElementById("comments-count-text");
   const slug = link?.dataset.slug;
 
@@ -347,7 +361,7 @@ const nextSlug = next?.id.replace("/index", "");
   }
   .meta-val {
     font-family: var(--display);
-    font-size: 22px;
+    font-size: 18px;
     line-height: 1.1;
     color: var(--ink);
     letter-spacing: 0.005em;
@@ -434,7 +448,7 @@ const nextSlug = next?.id.replace("/index", "");
   }
   .mdx-content :global(p) {
     font-family: var(--body);
-    font-size: 17px;
+    font-size: 20px;
     line-height: 1.7;
     color: var(--ink-2);
     margin: 0 0 1.4rem;
@@ -456,14 +470,14 @@ const nextSlug = next?.id.replace("/index", "");
   .mdx-content :global(ul) {
     padding-left: 1.5rem;
     color: var(--ink-2);
-    font-size: 17px;
+    font-size: 20px;
     line-height: 1.7;
     list-style-type: disc;
   }
   .mdx-content :global(ol) {
     padding-left: 1.5rem;
     color: var(--ink-2);
-    font-size: 17px;
+    font-size: 20px;
     line-height: 1.7;
     list-style-type: decimal;
   }
@@ -559,6 +573,9 @@ const nextSlug = next?.id.replace("/index", "");
       row-gap: 20px;
       column-gap: 16px;
     }
+    .mdx-content :global(h2) {
+      font-size: 32px;
+    }
     .comments-link {
       flex-direction: row;
       align-items: center;
@@ -569,6 +586,11 @@ const nextSlug = next?.id.replace("/index", "");
       height: 22px;
     }
     .meta-val {
+      font-size: 16px;
+    }
+    .mdx-content :global(p),
+    .mdx-content :global(ul),
+    .mdx-content :global(ol) {
       font-size: 18px;
     }
     .hero-text {

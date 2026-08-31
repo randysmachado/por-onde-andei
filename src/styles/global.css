@@ -41,8 +41,7 @@
   --color-accent-deep: #c96920;
 
   --font-display:
-    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui,
-    sans-serif;
+    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --font-body: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-ui: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
@@ -63,8 +62,7 @@
   --accent-deep: #c96920;
 
   --display:
-    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui,
-    sans-serif;
+    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
   --body: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --ui: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
@@ -270,7 +268,7 @@ button {
 }
 .pop-excerpt {
   font-family: var(--body);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   color: var(--ink-2);
   margin: 0 0 14px;
