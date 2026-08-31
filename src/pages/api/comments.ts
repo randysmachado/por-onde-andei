@@ -16,9 +16,12 @@ export const GET: APIRoute = async ({ url }) => {
 
   const rows = await readComments(slug);
   const comments = rows.map((r) => ({
+    id: r.id,
     name: r.name,
     comment: r.comment,
     date: r.date,
+    parentId: r.parentId,
+    isAuthor: r.isAuthor,
   }));
   return new Response(JSON.stringify({ comments }), { status: 200 });
 };
@@ -30,6 +33,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     email?: string;
     comment?: string;
     turnstileToken?: string;
+    parentId?: string;
   };
   try {
     body = await request.json();
@@ -39,7 +43,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   }
 
-  const { slug, turnstileToken } = body;
+  const { slug, turnstileToken, parentId } = body;
 
   if (!slug) {
     return new Response(JSON.stringify({ error: "slug é obrigatório" }), {
@@ -59,6 +63,18 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     });
   }
   const { name, email, comment } = parsed.data;
+
+  if (parentId) {
+    const existing = await readComments(slug);
+    const parent = existing.find((c) => c.id === parentId);
+    const parentIsRoot = !!parent && parent.parentId === "";
+    if (!parentIsRoot) {
+      return new Response(
+        JSON.stringify({ error: "comentário original não encontrado" }),
+        { status: 400 },
+      );
+    }
+  }
 
   if (!turnstileToken) {
     return new Response(JSON.stringify({ error: "captcha ausente" }), {
@@ -82,8 +98,16 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   const date = new Date().toISOString();
+  let created;
   try {
-    await appendComment(slug, { date, name, email, comment });
+    created = await appendComment(slug, {
+      date,
+      name,
+      email,
+      comment,
+      parentId: parentId ?? "",
+      isAuthor: false,
+    });
   } catch {
     return new Response(
       JSON.stringify({ error: "não foi possível enviar seu comentário, tente novamente" }),
@@ -91,7 +115,17 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     );
   }
 
-  return new Response(JSON.stringify({ comment: { name, comment, date } }), {
-    status: 201,
-  });
+  return new Response(
+    JSON.stringify({
+      comment: {
+        id: created.id,
+        name: created.name,
+        comment: created.comment,
+        date: created.date,
+        parentId: created.parentId,
+        isAuthor: created.isAuthor,
+      },
+    }),
+    { status: 201 },
+  );
 };
