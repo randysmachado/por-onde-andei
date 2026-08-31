@@ -109,26 +109,24 @@ const logoURL = new URL(logo.src, Astro.site).toString();
       }}
     />
 
-    <!-- Fonts: Bebas Neue + Manrope (assíncronas, não bloqueiam render) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fonts: Bricolage Grotesque (display) + Google Sans (corpo/UI),
+         self-hosted em public/fonts/ (declaradas via @font-face em
+         global.css). O preload adianta o download das duas variantes
+         carregadas logo no primeiro render (título + texto). -->
     <link
       rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
+      as="font"
+      type="font/woff2"
+      href="/fonts/BricolageGrotesque.woff2"
+      crossorigin
     />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-      media="print"
-      onload="this.media='all'"
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/GoogleSans.woff2"
+      crossorigin
     />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
 
     <!-- JSON-LD Structured Data -->
     <SchemaOrg

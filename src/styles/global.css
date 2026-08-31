@@ -1,5 +1,31 @@
 @import "tailwindcss";
 
+/* ─── Fontes self-hosted (public/fonts) ───────────────────────
+   Ambas variáveis: Bricolage Grotesque cobre peso 200–800 e largura
+   75–100%; Google Sans cobre peso 400–700 (regular e itálica). */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/BricolageGrotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Google Sans";
+  src: url("/fonts/GoogleSans.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Google Sans";
+  src: url("/fonts/GoogleSans-Italic.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* ─── Tailwind v4 design tokens ────────────────────────────── */
 @theme {
   --color-bg: #161513;
@@ -15,9 +41,10 @@
   --color-accent-deep: #c96920;
 
   --font-display:
-    "Bebas Neue", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-ui: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui,
+    sans-serif;
+  --font-body: "Google Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
@@ -35,9 +62,11 @@
   --accent-soft: rgba(230, 134, 58, 0.14);
   --accent-deep: #c96920;
 
-  --display: "Bebas Neue", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-  --body: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --ui: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --display:
+    "Bricolage Grotesque", "Inter Tight", ui-sans-serif, system-ui,
+    sans-serif;
+  --body: "Google Sans", ui-sans-serif, system-ui, sans-serif;
+  --ui: "Google Sans", ui-sans-serif, system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, monospace;
 
   --eyebrow-tt: uppercase;
