@@ -102,6 +102,55 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     oldest: document.getElementById("sort-oldest") as HTMLButtonElement,
   };
 
+  const OWN_COMMENTS_KEY = `own-comments:${slug}`;
+
+  function getOwnComments(): Record<string, number> {
+    try {
+      const raw = localStorage.getItem(OWN_COMMENTS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function rememberOwnComment(id: string, replyCount: number) {
+    try {
+      const own = getOwnComments();
+      own[id] = replyCount;
+      localStorage.setItem(OWN_COMMENTS_KEY, JSON.stringify(own));
+    } catch {
+      // localStorage indisponível (modo privado, quota etc.) — ignora silenciosamente
+    }
+  }
+
+  function markSeen(id: string, replyCount: number) {
+    rememberOwnComment(id, replyCount);
+  }
+
+  const replyObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const el = entry.target as HTMLElement;
+        const id = el.dataset.commentId;
+        const replyCount = Number(el.dataset.replyCount ?? "0");
+        if (!id) continue;
+        setTimeout(() => {
+          // confirma que ainda está visível antes de marcar como lido
+          const stillVisible = el.getBoundingClientRect().top < window.innerHeight;
+          if (stillVisible) {
+            markSeen(id, replyCount);
+            el.classList.remove("comment-has-new-reply");
+            const badge = el.querySelector(".comment-new-reply-badge");
+            badge?.remove();
+            replyObserver.unobserve(el);
+          }
+        }, 1500);
+      }
+    },
+    { threshold: 0.5 },
+  );
+
   let loadedComments: ApiComment[] = [];
   let currentSort: SortOrder = "newest";
 
@@ -228,6 +277,24 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
         list.appendChild(repliesWrap);
       }
 
+      const own = getOwnComments();
+      if (thread.root.id in own) {
+        const seenCount = own[thread.root.id];
+        const currentCount = thread.replies.length;
+        rootLi.dataset.replyCount = String(currentCount);
+        if (currentCount > seenCount) {
+          rootLi.classList.add("comment-has-new-reply");
+          const badge = document.createElement("p");
+          badge.className = "comment-new-reply-badge";
+          badge.textContent =
+            currentCount - seenCount === 1
+              ? "🔔 você recebeu 1 resposta nova"
+              : `🔔 você recebeu ${currentCount - seenCount} respostas novas`;
+          rootLi.appendChild(badge);
+          replyObserver.observe(rootLi);
+        }
+      }
+
       attachReplyForm(rootLi, thread.root.id);
     }
   }
@@ -349,6 +416,9 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
             errGeneral.hidden = false;
             return;
           }
+          if (data.comment?.id) {
+            rememberOwnComment(data.comment.id, 0);
+          }
           wrap.remove();
           await loadComments();
         } catch {
@@ -431,6 +501,9 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
         return;
       }
 
+      if (data.comment?.id) {
+        rememberOwnComment(data.comment.id, 0);
+      }
       form.reset();
       // @ts-expect-error turnstile é injetado pelo script externo
       window.turnstile?.reset();
@@ -794,6 +867,17 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     background: linear-gradient(165deg, var(--accent-soft) 0%, var(--bg) 60%);
     border-color: rgba(230, 134, 58, 0.35);
     border-left-color: var(--accent);
+  }
+  .comment-has-new-reply {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent) inset;
+  }
+  .comment-new-reply-badge {
+    margin: 10px 0 0;
+    font-family: var(--ui);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
   }
   .comment-author-badge {
     display: inline-block;
