@@ -116,7 +116,7 @@ export async function readComments(slug: string): Promise<CommentRow[]> {
     email: email ?? "",
     comment: comment ?? "",
     parentId: parentId ?? "",
-    isAuthor: isAuthor === "true",
+    isAuthor: (isAuthor ?? "").toLowerCase() === "true",
     date: date ?? "",
   }));
 }
