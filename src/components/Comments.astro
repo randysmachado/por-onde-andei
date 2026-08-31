@@ -7,7 +7,7 @@ const { slug } = Astro.props;
 const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 ---
 
-<section class="comments" id="comments" data-slug={slug}>
+<section class="comments" id="comments" data-slug={slug} data-turnstile-key={siteKey}>
   <div class="comments-inner">
     <div class="comments-heading">
       <span class="comments-eyebrow">Compartilhe conosco</span>
@@ -67,9 +67,28 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
   import { z } from "zod";
   import { commentSchema } from "../lib/commentSchema";
 
-  type ApiComment = { name: string; comment: string; date: string };
+  type ApiComment = {
+    id: string;
+    name: string;
+    comment: string;
+    date: string;
+    parentId: string;
+    isAuthor: boolean;
+  };
+
+  type CommentThread = { root: ApiComment; replies: ApiComment[] };
 
   type SortOrder = "newest" | "oldest";
+
+  function groupComments(comments: ApiComment[]): CommentThread[] {
+    const roots = comments.filter((c) => !c.parentId);
+    return roots.map((root) => ({
+      root,
+      replies: comments
+        .filter((c) => c.parentId === root.id)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    }));
+  }
 
   const section = document.getElementById("comments") as HTMLElement;
   const slug = section.dataset.slug!;
@@ -109,9 +128,9 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     }
   }
 
-  function sortedComments(comments: ApiComment[], order: SortOrder): ApiComment[] {
-    const sorted = [...comments].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  function sortedThreads(threads: CommentThread[], order: SortOrder): CommentThread[] {
+    const sorted = [...threads].sort(
+      (a, b) => new Date(a.root.date).getTime() - new Date(b.root.date).getTime(),
     );
     return order === "newest" ? sorted.reverse() : sorted;
   }
@@ -120,6 +139,62 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     for (const [order, btn] of Object.entries(sortButtons)) {
       btn.classList.toggle("active", order === currentSort);
     }
+  }
+
+  function buildCommentEl(c: ApiComment, opts: { isReply: boolean }): HTMLLIElement {
+    const li = document.createElement("li");
+    li.className =
+      "comment-item" +
+      (opts.isReply ? " comment-reply" : "") +
+      (c.isAuthor ? " comment-author" : "");
+    li.dataset.commentId = c.id;
+
+    const header = document.createElement("div");
+    header.className = "comment-header";
+
+    const avatar = document.createElement("div");
+    avatar.className = "comment-avatar";
+    avatar.textContent = c.name.trim().charAt(0).toUpperCase() || "?";
+
+    const meta = document.createElement("div");
+    meta.className = "comment-meta";
+
+    const name = document.createElement("span");
+    name.className = "comment-name";
+    name.textContent = c.name;
+    if (c.isAuthor) {
+      const badge = document.createElement("span");
+      badge.className = "comment-author-badge";
+      badge.textContent = "autor";
+      name.appendChild(badge);
+    }
+
+    const date = document.createElement("span");
+    date.className = "comment-date";
+    date.textContent = new Date(c.date).toLocaleDateString("pt-BR");
+
+    meta.appendChild(name);
+    meta.appendChild(date);
+    header.appendChild(avatar);
+    header.appendChild(meta);
+
+    const body = document.createElement("p");
+    body.className = "comment-body";
+    body.textContent = c.comment;
+
+    li.appendChild(header);
+    li.appendChild(body);
+
+    if (!opts.isReply) {
+      const replyBtn = document.createElement("button");
+      replyBtn.type = "button";
+      replyBtn.className = "reply-btn";
+      replyBtn.textContent = "Responder";
+      replyBtn.dataset.parentId = c.id;
+      li.appendChild(replyBtn);
+    }
+
+    return li;
   }
 
   function renderComments(comments: ApiComment[]) {
@@ -139,40 +214,21 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       comments.length === 1 ? "1 comentário" : `${comments.length} comentários`;
     updateSortButtons();
 
-    for (const c of sortedComments(comments, currentSort)) {
-      const li = document.createElement("li");
-      li.className = "comment-item";
+    const threads = groupComments(comments);
+    for (const thread of sortedThreads(threads, currentSort)) {
+      const rootLi = buildCommentEl(thread.root, { isReply: false });
+      list.appendChild(rootLi);
 
-      const header = document.createElement("div");
-      header.className = "comment-header";
+      if (thread.replies.length > 0) {
+        const repliesWrap = document.createElement("li");
+        repliesWrap.className = "comment-replies";
+        for (const reply of thread.replies) {
+          repliesWrap.appendChild(buildCommentEl(reply, { isReply: true }));
+        }
+        list.appendChild(repliesWrap);
+      }
 
-      const avatar = document.createElement("div");
-      avatar.className = "comment-avatar";
-      avatar.textContent = c.name.trim().charAt(0).toUpperCase() || "?";
-
-      const meta = document.createElement("div");
-      meta.className = "comment-meta";
-
-      const name = document.createElement("span");
-      name.className = "comment-name";
-      name.textContent = c.name;
-
-      const date = document.createElement("span");
-      date.className = "comment-date";
-      date.textContent = new Date(c.date).toLocaleDateString("pt-BR");
-
-      meta.appendChild(name);
-      meta.appendChild(date);
-      header.appendChild(avatar);
-      header.appendChild(meta);
-
-      const body = document.createElement("p");
-      body.className = "comment-body";
-      body.textContent = c.comment;
-
-      li.appendChild(header);
-      li.appendChild(body);
-      list.appendChild(li);
+      attachReplyForm(rootLi, thread.root.id);
     }
   }
 
@@ -194,6 +250,116 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
       `;
       list.appendChild(li);
     }
+  }
+
+  function attachReplyForm(rootLi: HTMLLIElement, parentId: string) {
+    const replyBtn = rootLi.querySelector<HTMLButtonElement>(".reply-btn");
+    if (!replyBtn) return;
+
+    replyBtn.addEventListener("click", () => {
+      const existingForm = rootLi.querySelector(".reply-form");
+      if (existingForm) {
+        existingForm.remove();
+        return;
+      }
+
+      const wrap = document.createElement("div");
+      wrap.className = "reply-form";
+      wrap.innerHTML = `
+        <div class="form-row">
+          <label>Nome</label>
+          <input type="text" class="reply-name" maxlength="80" />
+          <p class="field-error reply-err-name" hidden></p>
+        </div>
+        <div class="form-row">
+          <label>E-mail (não exibido publicamente)</label>
+          <input type="email" class="reply-email" />
+          <p class="field-error reply-err-email" hidden></p>
+        </div>
+        <div class="form-row">
+          <label>Resposta</label>
+          <textarea class="reply-comment" maxlength="2000" rows="3"></textarea>
+          <p class="field-error reply-err-comment" hidden></p>
+        </div>
+        <div class="cf-turnstile" data-sitekey="${section.dataset.turnstileKey}"></div>
+        <div class="reply-form-actions">
+          <button type="button" class="reply-submit">Enviar resposta</button>
+          <button type="button" class="reply-cancel">Cancelar</button>
+        </div>
+        <p class="reply-error" hidden></p>
+      `;
+      rootLi.appendChild(wrap);
+      // @ts-expect-error turnstile é injetado pelo script externo
+      window.turnstile?.render(wrap.querySelector(".cf-turnstile"));
+
+      wrap.querySelector(".reply-cancel")?.addEventListener("click", () => wrap.remove());
+
+      wrap.querySelector(".reply-submit")?.addEventListener("click", async () => {
+        const nameInput = wrap.querySelector(".reply-name") as HTMLInputElement;
+        const emailInput = wrap.querySelector(".reply-email") as HTMLInputElement;
+        const commentInput = wrap.querySelector(".reply-comment") as HTMLTextAreaElement;
+        const errName = wrap.querySelector(".reply-err-name") as HTMLParagraphElement;
+        const errEmail = wrap.querySelector(".reply-err-email") as HTMLParagraphElement;
+        const errComment = wrap.querySelector(".reply-err-comment") as HTMLParagraphElement;
+        const errGeneral = wrap.querySelector(".reply-error") as HTMLParagraphElement;
+        const submitBtn = wrap.querySelector(".reply-submit") as HTMLButtonElement;
+
+        for (const el of [errName, errEmail, errComment, errGeneral]) el.hidden = true;
+
+        const parsed = commentSchema.safeParse({
+          name: nameInput.value,
+          email: emailInput.value,
+          comment: commentInput.value,
+        });
+        if (!parsed.success) {
+          const fieldErrors = z.flattenError(parsed.error).fieldErrors;
+          if (fieldErrors.name?.[0]) {
+            errName.textContent = fieldErrors.name[0];
+            errName.hidden = false;
+          }
+          if (fieldErrors.email?.[0]) {
+            errEmail.textContent = fieldErrors.email[0];
+            errEmail.hidden = false;
+          }
+          if (fieldErrors.comment?.[0]) {
+            errComment.textContent = fieldErrors.comment[0];
+            errComment.hidden = false;
+          }
+          return;
+        }
+
+        const turnstileTokenInput = wrap.querySelector<HTMLInputElement>(
+          'input[name="cf-turnstile-response"]',
+        );
+        const turnstileToken = turnstileTokenInput?.value ?? null;
+
+        const defaultText = submitBtn.textContent ?? "Enviar resposta";
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Publicando sua resposta, aguarde…";
+
+        try {
+          const res = await fetch("/api/comments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug, ...parsed.data, turnstileToken, parentId }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            errGeneral.textContent = data.error ?? "Não foi possível enviar sua resposta.";
+            errGeneral.hidden = false;
+            return;
+          }
+          wrap.remove();
+          await loadComments();
+        } catch {
+          errGeneral.textContent = "Não foi possível enviar sua resposta, tente novamente.";
+          errGeneral.hidden = false;
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = defaultText;
+        }
+      });
+    });
   }
 
   async function loadComments() {
@@ -539,6 +705,89 @@ const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
     color: #e6863a;
     font-family: var(--ui);
     font-size: 14px;
+    margin: 0;
+  }
+  .comment-replies {
+    list-style: none;
+    margin: 0 0 0 32px;
+    padding: 10px 0 0 16px;
+    border-left: 2px solid var(--line-2);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .comment-reply {
+    padding: 14px 16px;
+  }
+  .comment-reply .comment-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  .comment-reply .comment-name {
+    font-size: 15px;
+  }
+  .comment-reply .comment-body {
+    font-size: 15px;
+  }
+  .reply-btn {
+    margin-top: 10px;
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    font-family: var(--ui);
+    font-size: 12px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    cursor: pointer;
+    padding: 0;
+  }
+  .reply-btn:hover {
+    color: var(--accent);
+  }
+  .reply-form {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .reply-form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .reply-submit {
+    background: var(--accent);
+    color: #1a1411;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-family: var(--ui);
+    font-size: 12px;
+    text-transform: var(--eyebrow-tt);
+    letter-spacing: var(--eyebrow-ls);
+    font-weight: var(--eyebrow-fw);
+    cursor: pointer;
+  }
+  .reply-submit:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .reply-cancel {
+    background: transparent;
+    border: none;
+    color: var(--ink-3);
+    font-family: var(--ui);
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .reply-error {
+    color: #e6863a;
+    font-family: var(--ui);
+    font-size: 13px;
     margin: 0;
   }
 
